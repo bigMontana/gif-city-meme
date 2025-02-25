@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meme Viewer</title>
+    <script src="./ffmpeg/ffmpeg.min.js"></script>
+    <script src="/ffmpeg/ffmpeg-core.js"></script>
+    <script src="/ffmpeg/ffmpeg-core.worker.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+        }
+
+        #video-container {
+            position: relative;
+            transform-style: preserve-3d;
+            max-width: 100%;
+            margin: 0 auto;
+        }
+
+        #memeVideo {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform-origin: 50% 100%;
+            will-change: transform;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        #overlayImage {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #status {
+            margin-top: 10px;
+            color: #666;
+        }
+
+        .scrubber-container {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        #videoScrubber {
+            width: 100%;
+            height: 20px;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+
+        /* Style the slider thumb */
+        #videoScrubber::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 15px;
+            height: 25px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        #videoScrubber::-moz-range-thumb {
+            width: 15px;
+            height: 25px;
+            background: #007bff;
+            cursor: pointer;
+            border-radius: 3px;
+            border: none;
+        }
+
+        .toggle-button {
+            background-color: #dc3545;
+        }
+        
+        .toggle-button.active {
+            background-color: #28a745;
+        }
+
+        /* Add styles for the new FFmpeg button */
+        .ffmpeg-button {
+            background-color: #6610f2;
+            margin-left: 10px;
+        }
+        
+        .ffmpeg-button:hover {
+            background-color: #520dc2;
+        }
+
+        .upload-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+
+        .image-upload-button {
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .image-upload-button:hover {
+            transform: scale(1.05);
+            border-color: #0056b3 !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="video-container">
+            <canvas id="renderCanvas"></canvas>
+        </div>
+        <div class="upload-container"></div>
+        <div class="toggle-container" style="margin: 10px 0;">
+            <button id="offsetToggle" class="toggle-button">Frame Offset: OFF</button>
+        </div>
+        <button id="exportButton">Export Video</button>
+        <button id="ffmpegButton" class="ffmpeg-button">Render with FFmpeg</button>
+        
+        <!-- Add video scrubber -->
+        <div class="scrubber-container">
+            <input type="range" 
+                   id="videoScrubber" 
+                   min="0" 
+                   max="0" 
+                   value="0" 
+                   step="1" 
+                   style="width: 100%; margin: 20px 0;">
+        </div>
+        
+        <div id="status"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('renderCanvas');
+            const ctx = canvas.getContext('2d');
+            const video = document.createElement('video');
+            const exportButton = document.getElementById('exportButton');
+            const statusDiv = document.getElementById('status');
+            const offsetToggle = document.getElementById('offsetToggle');
+            const ffmpegButton = document.getElementById('ffmpegButton');
+            video.src = 'Meme_Khaleesi.mp4';
+            let frameData = {};
+            let currentFrame = 0;
+            let mediaRecorder;
+            let chunks = [];
+            let originalFrameData = {};
+            let isOffsetActive = false;
+            let imageButtons = new Map(); // Store image name -> image element mapping
+            
+            // Add logo image loading at the top with other initializations
+            const logoImage = new Image();
+            logoImage.onload = () => {
+                if (video.readyState >= 2) {
+                    drawFrame();
+                }
+            };
+            logoImage.src = 'gifcity.png';
+            
+            // Load the JSON data
+            fetch('khaleesi_overlay.json')
+                .then(response => response.json())
+                .then(data => {
+                    // Collect unique image names
+                    const uniqueImageNames = new Set(['Default']);
+                    Object.values(data.frames).forEach(frame => {
+                        if (frame.imageName) {
+                            uniqueImageNames.add(frame.imageName);
+                        }
+                    });
+
+                    // Create container for image buttons if it doesn't exist
+                    const uploadContainer = document.querySelector('.upload-container');
+                    uploadContainer.innerHTML = ''; // Clear existing content
+                    uploadContainer.style.display = 'flex';
+                    uploadContainer.style.flexWrap = 'wrap';
+                    uploadContainer.style.gap = '10px';
+                    uploadContainer.style.justifyContent = 'center';
+                    uploadContainer.style.margin = '20px 0';
+
+                    // Create an upload button for each unique image name
+                    uniqueImageNames.forEach(imageName => {
+                        const buttonContainer = document.createElement('div');
+                        buttonContainer.style.display = 'flex';
+                        buttonContainer.style.flexDirection = 'column';
+                        buttonContainer.style.alignItems = 'center';
+                        buttonContainer.style.gap = '5px';
+
+                        const imgButton = document.createElement('img');
+                        imgButton.className = 'image-upload-button';
+                        imgButton.style.width = '100px';
+                        imgButton.style.height = '100px';
+                        imgButton.style.objectFit = 'cover';
+                        imgButton.style.cursor = 'pointer';
+                        imgButton.style.border = '2px solid #007bff';
+                        imgButton.style.borderRadius = '5px';
+
+                        // Set default image or placeholder
+                        if (imageName === 'Default') {
+                            imgButton.src = 'GERGFACE.png';
+                        } else {
+                            // Use a placeholder for other images
+                            imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="100%" height="100%" fill="#f0f0f0"/>
+                                    <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                        fill="#666" text-anchor="middle" dy=".3em">Click to Upload</text>
+                                </svg>
+                            `);
+                        }
+
+                        const label = document.createElement('div');
+                        label.textContent = imageName;
+                        label.style.fontSize = '14px';
+                        label.style.color = '#666';
+
+                        // Create hidden file input
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.style.display = 'none';
+                        fileInput.dataset.imageName = imageName;
+
+                        // Handle file selection
+                        fileInput.addEventListener('change', (e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (e) => {
+                                    imgButton.src = e.target.result;
+                                    imageButtons.set(imageName, imgButton);
+                                    drawFrame(); // Redraw frame with new image
+                                };
+                                reader.readAsDataURL(file);
+                            }
+                        });
+
+                        // Handle button click
+                        imgButton.addEventListener('click', () => {
+                            fileInput.click();
+                        });
+
+                        buttonContainer.appendChild(imgButton);
+                        buttonContainer.appendChild(label);
+                        buttonContainer.appendChild(fileInput);
+                        uploadContainer.appendChild(buttonContainer);
+
+                        // Store the image button reference
+                        imageButtons.set(imageName, imgButton);
+                    });
+
+                    // Continue with initialization
+                    originalFrameData = data.frames;
+                    frameData = originalFrameData;
+                    
+                    video.addEventListener('loadedmetadata', () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        
+                        // Set up video scrubber
+                        const scrubber = document.getElementById('videoScrubber');
+                        scrubber.max = Math.floor(video.duration * 30);
+                        
+                        // Add scrubber event listener
+                        scrubber.addEventListener('input', () => {
+                            currentFrame = parseInt(scrubber.value);
+                            video.currentTime = currentFrame / 30;
+                        });
+
+                        video.addEventListener('loadeddata', () => {
+                            video.currentTime = 0;
+                        });
+                    });
+
+                    video.addEventListener('timeupdate', () => {
+                        currentFrame = Math.floor(video.currentTime * 30);
+                        // Update scrubber position
+                        const scrubber = document.getElementById('videoScrubber');
+                        scrubber.value = currentFrame;
+                        drawFrame();
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading JSON:', error);
+                    alert('Error loading overlay data');
+                });
+
+            // Add seeked event listener outside the fetch chain
+            video.addEventListener('seeked', () => {
+                drawFrame();
+            });
+
+            function drawFrame() {
+                if (video.readyState >= 2) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    
+                    const data = getFrameData(currentFrame);
+                    if (data) {
+                        ctx.save();
+                        ctx.translate(data.position.x, data.position.y);
+                        const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
+                        const finalScaleY = data.scale * data.scaleY;
+                        ctx.rotate(data.rotation * Math.PI / 180);
+                        ctx.scale(finalScaleX, finalScaleY);
+
+                        // Get the correct image for this frame
+                        const imageName = data.imageName || 'Default';
+                        const imageElement = imageButtons.get(imageName);
+                        if (imageElement && imageElement.complete) {
+                            ctx.drawImage(imageElement, -100, -100, 200, 200);
+                        }
+                        
+                        ctx.restore();
+                    }
+
+                    // Draw logo if needed
+                    if (logoImage.complete) {
+                        const padding = 40;
+                        ctx.drawImage(logoImage, 
+                            padding,
+                            canvas.height - 320 - padding,
+                            320,
+                            320
+                        );
+                    }
+                }
+            }
+
+            function getFrameData(frame) {
+                // If offset is active, look up frame data from 3 frames ahead
+                const lookupFrame = isOffsetActive ? frame + 3 : frame;
+                frame = Math.floor(lookupFrame);
+                
+                const keyframes = Object.keys(frameData)
+                    .map(Number)
+                    .sort((a, b) => a - b);
+                
+                // Find the surrounding keyframes
+                const nextKeyframeIndex = keyframes.findIndex(kf => kf > frame);
+                if (nextKeyframeIndex === -1) return frameData[keyframes[keyframes.length - 1]];
+                if (nextKeyframeIndex === 0) return frameData[keyframes[0]];
+                
+                const prevKeyframe = keyframes[nextKeyframeIndex - 1];
+                const nextKeyframe = keyframes[nextKeyframeIndex];
+                
+                // Calculate interpolation factor (0 to 1)
+                const factor = (frame - prevKeyframe) / (nextKeyframe - prevKeyframe);
+                
+                // Get the data for both keyframes
+                const prevData = frameData[prevKeyframe];
+                const nextData = frameData[nextKeyframe];
+                
+                // Interpolate between the two keyframes
+                return {
+                    position: {
+                        x: lerp(prevData.position.x, nextData.position.x, factor),
+                        y: lerp(prevData.position.y, nextData.position.y, factor)
+                    },
+                    scale: lerp(prevData.scale, nextData.scale, factor),
+                    scaleX: lerp(prevData.scaleX, nextData.scaleX, factor),
+                    scaleY: lerp(prevData.scaleY, nextData.scaleY, factor),
+                    rotation: lerpAngle(prevData.rotation, nextData.rotation, factor),
+                    xFlip: prevData.xFlip, // Flip doesn't interpolate, use previous value
+                    imageName: prevData.imageName || 'Default'
+                };
+            }
+            
+            // Linear interpolation helper function with cubic easing
+            function lerp(start, end, factor) {
+                // Cubic easing function
+                factor = factor * factor * (3 - 2 * factor);
+                return start + (end - start) * factor;
+            }
+            
+            // Special interpolation for angles to handle wraparound
+            function lerpAngle(start, end, factor) {
+                let diff = end - start;
+                // Handle angle wraparound
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                // Apply cubic easing to angle interpolation
+                factor = factor * factor * (3 - 2 * factor);
+                return start + diff * factor;
+            }
+
+            video.addEventListener('play', function() {
+                function step() {
+                    drawFrame();
+                    if (!video.paused && !video.ended) {
+                        requestAnimationFrame(step);
+                    }
+                }
+                requestAnimationFrame(step);
+            });
+
+            exportButton.addEventListener('click', async () => {
+                statusDiv.textContent = 'Starting export...';
+                
+                // Create separate streams for video and audio
+                const fps = 30;
+                const canvasStream = canvas.captureStream(fps);
+                const audioStream = video.captureStream();
+                
+                // Make sure we have audio tracks before trying to add them
+                let combinedStream;
+                if (audioStream.getAudioTracks().length > 0) {
+                    const audioTrack = audioStream.getAudioTracks()[0];
+                    combinedStream = new MediaStream([
+                        ...canvasStream.getVideoTracks(),
+                        audioTrack
+                    ]);
+                } else {
+                    // Just use video if no audio is available
+                    combinedStream = canvasStream;
+                }
+                
+                // Setup MediaRecorder with appropriate settings for compatibility
+                mediaRecorder = new MediaRecorder(combinedStream, {
+                    mimeType: 'video/webm',
+                    videoBitsPerSecond: 5000000
+                });
+                
+                chunks = [];
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        chunks.push(e.data);
+                    }
+                };
+                
+                // Request data more frequently to ensure we're capturing everything
+                mediaRecorder.start(100); // Collect data every 100ms
+                
+                // Reset and prepare video
+                video.currentTime = 0;
+                video.playbackRate = 1.0;
+                
+                // Use the natural playback method instead of frame-by-frame
+                await new Promise(resolve => {
+                    let isDrawing = false;
+                    
+                    function drawLoop() {
+                        if (video.paused || video.ended) return;
+                        
+                        if (!isDrawing) {
+                            isDrawing = true;
+                            drawFrame();
+                            isDrawing = false;
+                        }
+                        
+                        // Update progress
+                        const progress = (video.currentTime / video.duration) * 100;
+                        statusDiv.textContent = `Exporting: ${Math.floor(progress)}%`;
+                        
+                        requestAnimationFrame(drawLoop);
+                    }
+                    
+                    // Handle video end
+                    video.onended = () => {
+                        setTimeout(resolve, 500); // Give a little extra time for final frames
+                    };
+                    
+                    // Start playback and rendering
+                    video.play().then(() => {
+                        // Start the draw loop after playback begins
+                        requestAnimationFrame(drawLoop);
+                    }).catch(err => {
+                        console.error("Video playback error:", err);
+                        statusDiv.textContent = "Export failed: " + err.message;
+                        resolve(); // Resolve anyway to prevent hanging
+                    });
+                });
+                
+                // Stop recording and wait for it to finish
+                await new Promise(resolve => {
+                    mediaRecorder.onstop = resolve;
+                    mediaRecorder.stop();
+                });
+                
+                // Make sure we have some data before creating blob
+                if (chunks.length === 0) {
+                    statusDiv.textContent = 'Export failed: No video data was captured';
+                    return;
+                }
+                
+                // Create and download the final video
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                
+                // Check if the blob has content
+                if (blob.size === 0) {
+                    statusDiv.textContent = 'Export failed: Generated video has no data';
+                    return;
+                }
+                
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'meme_with_overlay.webm';
+                document.body.appendChild(a); // Some browsers need the element to be in the DOM
+                a.click();
+                
+                // Clean up
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                statusDiv.textContent = `Export complete! File size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+            });
+
+            // Add toggle button handler
+            offsetToggle.addEventListener('click', () => {
+                isOffsetActive = !isOffsetActive;
+                offsetToggle.textContent = `Frame Offset: ${isOffsetActive ? 'ON' : 'OFF'}`;
+                offsetToggle.classList.toggle('active');
+
+                if (isOffsetActive) {
+                    // Create offset version of frameData by shifting frame numbers forward
+                    frameData = Object.entries(originalFrameData).reduce((acc, [frame, data]) => {
+                        const newFrame = parseInt(frame) + 3;  // Add 3 to shift overlay data later
+                        acc[newFrame] = data;
+                        return acc;
+                    }, {});
+                } else {
+                    // Restore original frameData
+                    frameData = originalFrameData;
+                }
+
+                // Redraw current frame
+                drawFrame();
+            });
+
+            // Update FFmpeg initialization
+            let ffmpeg = null;
+
+            async function initFFmpeg() {
+                if (ffmpeg) return;
+                
+                ffmpeg = FFmpeg.createFFmpeg({
+                    log: true,
+                    corePath: './ffmpeg/ffmpeg-core.js',
+                    workerPath: './ffmpeg/ffmpeg-core.worker.js',
+                    wasmPath: './ffmpeg/ffmpeg-core.wasm'
+                });
+                
+                try {
+                    await ffmpeg.load();
+                    console.log('FFmpeg is ready!');
+                } catch (error) {
+                    console.error('FFmpeg failed to load:', error);
+                    statusDiv.textContent = 'Failed to initialize FFmpeg: ' + error.message;
+                }
+            }
+
+            // Initialize FFmpeg when the page loads
+            initFFmpeg();
+
+            // Handle FFmpeg render button click
+            ffmpegButton.addEventListener('click', async () => {
+                if (!ffmpeg) {
+                    console.error('FFmpeg not initialized');
+                    statusDiv.textContent = 'FFmpeg not initialized';
+                    return;
+                }
+
+                statusDiv.textContent = 'Capturing frames...';
+                
+                // Reset video to start
+                video.currentTime = 0;
+                await new Promise(resolve => video.addEventListener('seeked', resolve, { once: true }));
+                
+                const frames = [];
+                const totalFrames = Math.floor(video.duration * 30);
+                
+                // Function to capture a single frame
+                function captureFrame() {
+                    drawFrame();
+                    return new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            canvas.toBlob(blob => {
+                                frames.push(blob);
+                                resolve();
+                            }, 'image/jpeg', 0.95);
+                        });
+                    });
+                }
+
+                try {
+                    // Capture all frames with proper timing
+                    for (let i = 0; i < totalFrames; i++) {
+                        video.currentTime = i / 30;
+                        // Wait for the video to actually seek to the new time
+                        await new Promise(resolve => {
+                            const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                resolve();
+                            };
+                            video.addEventListener('seeked', onSeeked);
+                        });
+                        // Wait for the next frame to be rendered
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        await captureFrame();
+                        
+                        // Update progress
+                        statusDiv.textContent = `Capturing frames: ${Math.floor((i / totalFrames) * 100)}%`;
+                    }
+
+                    statusDiv.textContent = 'Processing frames with FFmpeg...';
+
+                    // Create a virtual filesystem for FFmpeg
+                    for (let i = 0; i < frames.length; i++) {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        const frameData = new Uint8Array(await frames[i].arrayBuffer());
+                        ffmpeg.FS('writeFile', frameName, frameData);
+                        
+                        // Log every 30 frames to show progress
+                        if (i % 30 === 0) {
+                            console.log(`Writing frame ${i} of ${frames.length}`);
+                        }
+                    }
+
+                    // Get the audio from the video element
+                    const audioContext = new AudioContext();
+                    const audioSource = audioContext.createMediaElementSource(video);
+                    const audioDestination = audioContext.createMediaStreamDestination();
+                    audioSource.connect(audioDestination);
+                    
+                    const audioTrack = audioDestination.stream.getAudioTracks()[0];
+                    const mediaRecorder = new MediaRecorder(new MediaStream([audioTrack]));
+                    const audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.start();
+                    
+                    video.currentTime = 0;
+                    await new Promise(resolve => {
+                        video.onended = resolve;
+                        video.play();
+                    });
+                    
+                    mediaRecorder.stop();
+                    await new Promise(resolve => mediaRecorder.onstop = resolve);
+                    
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioData = new Uint8Array(await audioBlob.arrayBuffer());
+                    ffmpeg.FS('writeFile', 'audio.webm', audioData);
+
+                    // Update FFmpeg command to ensure proper frame handling
+                    await ffmpeg.run(
+                        // Input frames
+                        '-framerate', '30',
+                        '-pattern_type', 'sequence',
+                        '-i', 'frame%04d.jpg',
+                        // Input audio
+                        '-i', 'audio.webm',
+                        // Output options
+                        '-c:v', 'libx264',
+                        '-pix_fmt', 'yuv420p',
+                        '-preset', 'medium',
+                        '-crf', '23',
+                        '-c:a', 'aac',
+                        '-b:a', '128k',
+                        '-movflags', '+faststart',
+                        'output.mp4'
+                    );
+
+                    // Read the output file
+                    const data = ffmpeg.FS('readFile', 'output.mp4');
+
+                    // Clean up files
+                    frames.forEach((_, i) => {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        ffmpeg.FS('unlink', frameName);
+                    });
+                    ffmpeg.FS('unlink', 'audio.webm');
+                    ffmpeg.FS('unlink', 'output.mp4');
+
+                    // Create download link
+                    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'meme_ffmpeg.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+
+                    statusDiv.textContent = `FFmpeg export complete! File size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+
+                } catch (error) {
+                    console.error('FFmpeg processing error:', error);
+                    statusDiv.textContent = 'FFmpeg processing failed: ' + error.message;
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

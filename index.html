@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Web Page</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Add video file input above video container -->
+        <div class="control-group">
+            <label>Load Video:</label>
+            <input type="file" id="videoInput" accept="video/*">
+        </div>
+
+        <!-- Add image replacement control -->
+        <div class="control-group">
+            <button id="replaceImageButton" class="excluded-from-color">Replace Default Face Image</button>
+            <input type="file" id="replaceImageUpload" accept="image/*" style="display: none;">
+        </div>
+
+        <!-- Video and overlay controls -->
+        <div id="video-container">
+            <canvas id="videoCanvas"></canvas>
+        </div>
+
+        <!-- Move face controls here -->
+        <div class="face-controls control-group">
+            <button id="addFaceButton">Add New Face</button>
+            <button id="toggleFace">Face 1</button>
+            <input type="file" id="faceImageUpload" accept="image/*" style="display: none;">
+        </div>
+        
+        <!-- Frame counter -->
+        <div id="frameCounter" class="frame-counter">
+            Frame: <span id="currentFrameDisplay">0</span> / <span id="totalFramesDisplay">0</span>
+        </div>
+        
+        <div class="controls">
+            <div class="control-group">
+                <label>Position X:</label>
+                <button class="fine-tune-btn" data-target="posX" data-step="-1">-</button>
+                <input type="range" id="posX" min="-1000" max="2500" value="0">
+                <button class="fine-tune-btn" data-target="posX" data-step="1">+</button>
+                <span class="value-display" id="posXValue">0</span>
+            </div>
+            <div class="control-group">
+                <label>Position Y:</label>
+                <button class="fine-tune-btn" data-target="posY" data-step="-1">-</button>
+                <input type="range" id="posY" min="-1000" max="2000" value="0">
+                <button class="fine-tune-btn" data-target="posY" data-step="1">+</button>
+                <span class="value-display" id="posYValue">0</span>
+            </div>
+            
+            <div class="control-group">
+                <label>Scale:</label>
+                <button class="fine-tune-btn" data-target="scale" data-step="-0.01">-</button>
+                <input type="range" id="scale" min="0.1" max="10" step="0.1" value="1">
+                <button class="fine-tune-btn" data-target="scale" data-step="0.01">+</button>
+                <span class="value-display" id="scaleValue">1</span>
+            </div>
+            <div class="control-group">
+                <label>Scale X:</label>
+                <button class="fine-tune-btn" data-target="scaleX" data-step="-0.01">-</button>
+                <input type="range" id="scaleX" min="0.1" max="10" step="0.1" value="1">
+                <button class="fine-tune-btn" data-target="scaleX" data-step="0.01">+</button>
+                <span class="value-display" id="scaleXValue">1</span>
+            </div>
+            <div class="control-group">
+                <label>Scale Y:</label>
+                <button class="fine-tune-btn" data-target="scaleY" data-step="-0.01">-</button>
+                <input type="range" id="scaleY" min="0.1" max="10" step="0.1" value="1">
+                <button class="fine-tune-btn" data-target="scaleY" data-step="0.01">+</button>
+                <span class="value-display" id="scaleYValue">1</span>
+            </div>
+
+            <div class="control-group">
+                <label>Rotation:</label>
+                <button class="fine-tune-btn" data-target="rotation" data-step="-0.5">-</button>
+                <input type="range" id="rotation" min="-180" max="180" value="0">
+                <button class="fine-tune-btn" data-target="rotation" data-step="0.5">+</button>
+                <span class="value-display" id="rotationValue">0</span>
+            </div>
+
+            <div class="control-group">
+                <label>Flip X:</label>
+                <input type="checkbox" id="xFlip">
+                <label style="margin-left: 20px;">Hide Face:</label>
+                <input type="checkbox" id="hideFace">
+            </div>
+
+            <div class="control-group">
+                <label>Image Name:</label>
+                <input type="text" id="imageName" placeholder="Default" value="Default">
+                <button id="setImageName">Set Image</button>
+            </div>
+
+            <div class="control-group">
+                <label>Used Images:</label>
+                <div id="usedImageNames" class="used-images">
+                    <span class="image-tag">Default</span>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button id="prevFrame">Previous Frame</button>
+                <button id="nextFrame">Next Frame</button>
+                <button id="saveSquareData">Save Square Data</button>
+                <button id="downloadJSON">Download JSON</button>
+                <input type="file" id="jsonUpload" accept=".json" style="display: none;">
+                <button id="loadJSON">Load JSON</button>
+            </div>
+
+            <!-- Add timeline scrubber -->
+            <div class="scrubber-container">
+                <div id="frameMarkers" class="frame-markers"></div>
+                <input type="range" 
+                        id="videoScrubber" 
+                        min="0" 
+                        max="0" 
+                        value="0" 
+                        step="1" 
+                        style="width: 100%; margin: 20px 0;">
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
+    <script src="https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js"></script>
+</body>
+</html> 

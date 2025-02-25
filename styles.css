@@ -1,0 +1,180 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    line-height: 1.6;
+    background-color: #f4f4f4;
+}
+
+.container {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+    text-align: center;
+    position: relative;
+}
+
+button {
+    padding: 10px 20px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: background-color 0.3s ease;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+#video-container {
+    position: relative;
+    transform-style: preserve-3d;
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+#videoCanvas {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+#memeVideo {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+#overlay {
+    position: absolute;
+    left: 0;
+    top: 0;
+    transform-origin: 50% 100%;
+    will-change: transform;
+}
+
+.controls {
+    margin: 20px auto;
+    max-width: 800px;
+    padding: 15px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.control-group {
+    margin: 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-left: 4px solid transparent;
+    transition: border-color 0.3s ease;
+}
+
+.control-group label {
+    min-width: 80px;
+    text-align: right;
+}
+
+.control-group input[type="range"] {
+    flex: 1;
+    margin: 0 5px;
+    transition: accent-color 0.3s ease;
+}
+
+.value-display {
+    min-width: 60px;
+    text-align: right;
+    font-family: monospace;
+}
+
+.frame-counter {
+    margin: 10px 0;
+    font-family: monospace;
+    font-size: 1.2em;
+}
+
+.fine-tune-btn {
+    padding: 2px 8px;
+    margin: 0 5px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.fine-tune-btn:hover {
+    background-color: #0056b3;
+}
+
+.scrubber-container {
+    width: 100%;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+#videoScrubber {
+    width: 100%;
+    height: 20px;
+    margin: 20px 0;
+    cursor: pointer;
+}
+
+/* Style the slider thumb */
+#videoScrubber::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 25px;
+    background: #007bff;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+#videoScrubber::-moz-range-thumb {
+    width: 15px;
+    height: 25px;
+    background: #007bff;
+    cursor: pointer;
+    border-radius: 3px;
+    border: none;
+}
+
+.frame-markers {
+    width: 100%;
+    height: 10px;
+    margin-bottom: 5px;
+    position: relative;
+    background: #f0f0f0;
+    border-radius: 3px;
+}
+
+.frame-marker {
+    position: absolute;
+    width: 2px;
+    height: 100%;
+    background: #007bff;
+    transform: translateX(-50%);
+}
+
+.face-controls {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.face-controls button {
+    margin: 0;  /* Override default button margin */
+    min-width: 100px;  /* Ensure buttons have consistent width */
+} 
