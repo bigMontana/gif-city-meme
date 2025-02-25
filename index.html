@@ -22,7 +22,7 @@
 
         <!-- Video and overlay controls -->
         <div id="video-container">
-            <canvas id="videoCanvas"></canvas>
+            <canvas id="videoCanvas" style="cursor: crosshair;"></canvas>
         </div>
 
         <!-- Move face controls here -->
@@ -30,6 +30,13 @@
             <button id="addFaceButton">Add New Face</button>
             <button id="toggleFace">Face 1</button>
             <input type="file" id="faceImageUpload" accept="image/*" style="display: none;">
+        </div>
+
+        <!-- Add mask controls here -->
+        <div class="control-group">
+            <button id="startMask">Start Mask</button>
+            <button id="finishMask" style="display: none;">Finish Mask</button>
+            <button id="clearMask" style="display: none;">Clear Mask</button>
         </div>
         
         <!-- Frame counter -->
@@ -106,7 +113,7 @@
             <div class="button-group">
                 <button id="prevFrame">Previous Frame</button>
                 <button id="nextFrame">Next Frame</button>
-                <button id="saveSquareData">Save Square Data</button>
+                <button id="saveSquareData" class="face-specific-button">Save Current Face Data</button>
                 <button id="downloadJSON">Download JSON</button>
                 <input type="file" id="jsonUpload" accept=".json" style="display: none;">
                 <button id="loadJSON">Load JSON</button>

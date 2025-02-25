@@ -73,6 +73,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Add this at the top with other state variables
     let usedImageNames = new Set(['Default']);
 
+    // Add near the top with other state variables
+    let maskPoints = [];
+    let isDrawingMask = false;
+
     // Add face management with colors
     let faces = {
         face1: {
@@ -184,7 +188,16 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw all faces
         Object.keys(faces).forEach(faceId => {
             const face = faces[faceId];
-            const data = face.frameData[Math.floor(currentFrame)];
+            
+            // Find the last known frame data for face position/scale
+            const frameNumbers = Object.keys(face.frameData)
+                .map(Number)
+                .filter(num => num <= currentFrame)
+                .sort((a, b) => b - a);
+                
+            const data = frameNumbers.length > 0 ? 
+                face.frameData[frameNumbers[0]] : 
+                face.frameData[0];  // fallback to initial frame
             
             if (face.overlayImage.complete && data) {
                 // Skip drawing if face is hidden
@@ -205,6 +218,48 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Draw the overlay image
                 ctx.drawImage(face.overlayImage, -100, -100, 200, 200);
+
+                // Only draw mask if it exists in the current frame's data
+                const currentFrameData = face.frameData[Math.floor(currentFrame)];
+                if (currentFrameData?.maskPoints?.length > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(currentFrameData.maskPoints[0].x - 100, currentFrameData.maskPoints[0].y - 100);
+                    for (let i = 1; i < currentFrameData.maskPoints.length; i++) {
+                        ctx.lineTo(currentFrameData.maskPoints[i].x - 100, currentFrameData.maskPoints[i].y - 100);
+                    }
+                    ctx.closePath();
+                    ctx.strokeStyle = '#00ff00';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Draw points at vertices
+                    ctx.fillStyle = '#00ff00';
+                    currentFrameData.maskPoints.forEach(point => {
+                        ctx.beginPath();
+                        ctx.arc(point.x - 100, point.y - 100, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
+                
+                // Draw current mask points only if actively drawing mask
+                if (isDrawingMask && faceId === currentFace && maskPoints.length > 0) {
+                    ctx.beginPath();
+                    ctx.moveTo(maskPoints[0].x - 100, maskPoints[0].y - 100);
+                    for (let i = 1; i < maskPoints.length; i++) {
+                        ctx.lineTo(maskPoints[i].x - 100, maskPoints[i].y - 100);
+                    }
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Draw points at vertices
+                    ctx.fillStyle = '#ff0000';
+                    maskPoints.forEach(point => {
+                        ctx.beginPath();
+                        ctx.arc(point.x - 100, point.y - 100, 3, 0, Math.PI * 2);
+                        ctx.fill();
+                    });
+                }
                 
                 ctx.restore();
             }
@@ -227,6 +282,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update scrubber event listener
         scrubber.addEventListener('input', () => {
             currentFrame = parseInt(scrubber.value);
+            // Clear temporary mask points when scrubbing
+            maskPoints = [];
+            // Reset mask drawing mode and buttons
+            isDrawingMask = false;
+            startMaskBtn.style.display = 'inline';
+            finishMaskBtn.style.display = 'none';
+            clearMaskBtn.style.display = 'none';
+            
             video.currentTime = currentFrame / frameRate;
             currentFrameDisplay.textContent = currentFrame;
             updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
@@ -239,6 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateFrameMarkers();
     });
 
+    // This existing event listener will handle drawing after seeking
     video.addEventListener('seeked', () => {
         drawFrame();
     });
@@ -248,9 +312,24 @@ document.addEventListener('DOMContentLoaded', () => {
         currentFrame = newFrame;
         const scrubber = document.getElementById('videoScrubber');
         scrubber.value = Math.floor(currentFrame);
-        video.currentTime = Math.floor(currentFrame) / frameRate;
-        updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
+        
+        // Clear temporary mask points when changing frames
+        maskPoints = [];
+        // Reset mask drawing mode and buttons
+        isDrawingMask = false;
+        startMaskBtn.style.display = 'inline';
+        finishMaskBtn.style.display = 'none';
+        clearMaskBtn.style.display = 'none';
+        
+        // Update frame display immediately
         currentFrameDisplay.textContent = Math.floor(currentFrame);
+        
+        // Update controls for current face
+        updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
+        
+        // Wait for video to seek before drawing
+        video.currentTime = Math.floor(currentFrame) / frameRate;
+        // drawFrame will be called by the 'seeked' event listener
     }
 
     // Update the frame navigation buttons to use the new function
@@ -276,7 +355,7 @@ document.addEventListener('DOMContentLoaded', () => {
         scaleYValue.textContent = scaleY.value;
         rotationValue.textContent = rotation.value;
         
-        // Save current values to face data
+        // Only update the current face's data
         const face = faces[currentFace];
         if (!face.frameData[Math.floor(currentFrame)]) {
             face.frameData[Math.floor(currentFrame)] = {
@@ -287,7 +366,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 finalScale: { x: 1, y: 1 },
                 rotation: 0,
                 xFlip: false,
-                imageName: 'Default'
+                imageName: 'Default',
+                maskPoints: [] // Initialize empty mask points array
             };
         }
         
@@ -301,7 +381,14 @@ document.addEventListener('DOMContentLoaded', () => {
         data.xFlip = xFlip.checked;
         data.hidden = hideFace.checked;
         
-        // Redraw the canvas
+        // Preserve existing mask points if they exist
+        if (maskPoints.length > 0) {
+            data.maskPoints = [...maskPoints];
+        } else if (!data.maskPoints) {
+            data.maskPoints = [];
+        }
+        
+        // Redraw the canvas with all faces
         drawFrame();
     }
 
@@ -362,7 +449,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Update the save button to handle multiple faces
+    // Update the save button handler
     document.getElementById('saveSquareData').addEventListener('click', () => {
         const face = faces[currentFace];
         const baseScale = parseFloat(scale.value);
@@ -382,16 +469,16 @@ document.addEventListener('DOMContentLoaded', () => {
             rotation: parseInt(rotation.value),
             xFlip: xFlip.checked,
             hidden: hideFace.checked,
-            imageName: imageName
+            imageName: imageName,
+            // Include the current mask points if they exist in the frame data
+            maskPoints: face.frameData[Math.floor(currentFrame)]?.maskPoints || []
         };
         
+        // Only save data for current face
         face.frameData[Math.floor(currentFrame)] = squareData;
         
-        // Add console logs to show the data
-        console.log('Current Face:', currentFace);
-        console.log('Frame:', Math.floor(currentFrame));
-        console.log('Square Data:', squareData);
-        console.log('All Faces Data:', faces);
+        // Log only the relevant data
+        console.log(`Saved data for ${currentFace} at frame ${Math.floor(currentFrame)}:`, squareData);
         
         updateFrameMarkers();
     });
@@ -506,138 +593,144 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Export button functionality
     const exportButton = document.getElementById('exportButton');
-    const statusDiv = document.getElementById('status');
-
-    exportButton.addEventListener('click', async () => {
-        // Initialize FFmpeg with MP4 support
-        const ffmpeg = createFFmpeg({ 
-            log: true,
-            corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
-            // Add MP4 support
-            mainName: 'main',
-            format: 'mp4'
-        });
-        
-        try {
-            await ffmpeg.load();
-            
-            // Create an offscreen canvas for high quality rendering
-            const offscreenCanvas = document.createElement('canvas');
-            offscreenCanvas.width = canvas.width;
-            offscreenCanvas.height = canvas.height;
-            const offscreenCtx = offscreenCanvas.getContext('2d', {
-                alpha: false,
-                desynchronized: true
-            });
-            
-            statusDiv.textContent = 'Preparing for export...';
-            
-            // Start at frame 0
-            let frame = 0;
-            const totalFrames = Math.floor(video.duration * frameRate);
-            const frames = [];
-
-            // Function to render a single frame
-            const renderFrame = () => {
-                return new Promise((resolve) => {
-                    video.currentTime = frame / frameRate;
-                    
-                    // Add error handling for seeking
-                    const handleError = () => {
-                        console.error('Error seeking to frame:', frame);
-                        resolve();
-                    };
-                    
-                    const handleSeeked = () => {
-                        video.removeEventListener('error', handleError);
-                        
-                        // Draw video frame
-                        offscreenCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                        
-                        // Draw overlay if we have data
-                        const data = frameData[Math.floor(frame)];
-                        if (data && overlayImage.complete) {
-                            offscreenCtx.save();
-                            offscreenCtx.translate(data.position.x, data.position.y);
-                            const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
-                            const finalScaleY = data.scale * data.scaleY;
-                            offscreenCtx.rotate(data.rotation * Math.PI / 180);
-                            offscreenCtx.scale(finalScaleX, finalScaleY);
-                            offscreenCtx.drawImage(overlayImage, -100, -100, 200, 200);
-                            offscreenCtx.restore();
-                        }
-                        
-                        // Convert canvas to blob
-                        offscreenCanvas.toBlob((blob) => {
-                            frames.push(blob);
-                            resolve();
-                        }, 'image/png');
-                    };
-                    
-                    video.addEventListener('error', handleError, { once: true });
-                    video.addEventListener('seeked', handleSeeked, { once: true });
-                });
-            };
-
-            // First pass: render all frames with proper waiting
-            while (frame < totalFrames) {
-                await renderFrame();
-                frame++;
-                statusDiv.textContent = `Rendering frames... ${Math.floor((frame/totalFrames) * 100)}%`;
-                // Add a small delay to prevent browser from hanging
-                await new Promise(resolve => setTimeout(resolve, 10));
-            }
-
-            statusDiv.textContent = 'Creating video...';
-
-            // Run FFmpeg command with explicit MP4 settings
-            await ffmpeg.run(
-                '-framerate', '30',
-                '-i', 'frame_%05d.png',
-                '-c:v', 'libx264',
-                '-pix_fmt', 'yuv420p',
-                '-preset', 'medium',
-                '-crf', '23',
-                '-movflags', '+faststart',
-                '-f', 'mp4',  // Explicitly specify MP4 format
-                '-y',         // Overwrite output file if it exists
-                'output.mp4'
-            );
-
-            // Read the output file
-            const data = ffmpeg.FS('readFile', 'output.mp4');
-            
-            // Create download link with explicit MP4 MIME type and content disposition
-            const blob = new Blob([data.buffer], { 
-                type: 'video/mp4; codecs="avc1.42E01E"'  // Explicit H.264 codec
-            });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'meme_with_overlay.mp4';
-            // Force content disposition to download as MP4
-            a.setAttribute('download', 'meme_with_overlay.mp4');
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-
-            // Clean up
-            frames.forEach((_, i) => {
-                try {
-                    ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
-                } catch (e) {
-                    console.warn('Error cleaning up frame:', i, e);
-                }
-            });
-            ffmpeg.FS('unlink', 'output.mp4');
-
-            statusDiv.textContent = 'Export complete!';
-        } catch (error) {
-            console.error('Error during export:', error);
-            statusDiv.textContent = 'Error during export: ' + error.message;
+    if (exportButton) {
+        const statusDiv = document.getElementById('status') || document.createElement('div');
+        if (!document.getElementById('status')) {
+            statusDiv.id = 'status';
+            document.body.appendChild(statusDiv);
         }
-    });
+
+        exportButton.addEventListener('click', async () => {
+            // Initialize FFmpeg with MP4 support
+            const ffmpeg = createFFmpeg({ 
+                log: true,
+                corePath: 'https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js',
+                // Add MP4 support
+                mainName: 'main',
+                format: 'mp4'
+            });
+            
+            try {
+                await ffmpeg.load();
+                
+                // Create an offscreen canvas for high quality rendering
+                const offscreenCanvas = document.createElement('canvas');
+                offscreenCanvas.width = canvas.width;
+                offscreenCanvas.height = canvas.height;
+                const offscreenCtx = offscreenCanvas.getContext('2d', {
+                    alpha: false,
+                    desynchronized: true
+                });
+                
+                statusDiv.textContent = 'Preparing for export...';
+                
+                // Start at frame 0
+                let frame = 0;
+                const totalFrames = Math.floor(video.duration * frameRate);
+                const frames = [];
+
+                // Function to render a single frame
+                const renderFrame = () => {
+                    return new Promise((resolve) => {
+                        video.currentTime = frame / frameRate;
+                        
+                        // Add error handling for seeking
+                        const handleError = () => {
+                            console.error('Error seeking to frame:', frame);
+                            resolve();
+                        };
+                        
+                        const handleSeeked = () => {
+                            video.removeEventListener('error', handleError);
+                            
+                            // Draw video frame
+                            offscreenCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                            
+                            // Draw overlay if we have data
+                            const data = frameData[Math.floor(frame)];
+                            if (data && overlayImage.complete) {
+                                offscreenCtx.save();
+                                offscreenCtx.translate(data.position.x, data.position.y);
+                                const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
+                                const finalScaleY = data.scale * data.scaleY;
+                                offscreenCtx.rotate(data.rotation * Math.PI / 180);
+                                offscreenCtx.scale(finalScaleX, finalScaleY);
+                                offscreenCtx.drawImage(overlayImage, -100, -100, 200, 200);
+                                offscreenCtx.restore();
+                            }
+                            
+                            // Convert canvas to blob
+                            offscreenCanvas.toBlob((blob) => {
+                                frames.push(blob);
+                                resolve();
+                            }, 'image/png');
+                        };
+                        
+                        video.addEventListener('error', handleError, { once: true });
+                        video.addEventListener('seeked', handleSeeked, { once: true });
+                    });
+                };
+
+                // First pass: render all frames with proper waiting
+                while (frame < totalFrames) {
+                    await renderFrame();
+                    frame++;
+                    statusDiv.textContent = `Rendering frames... ${Math.floor((frame/totalFrames) * 100)}%`;
+                    // Add a small delay to prevent browser from hanging
+                    await new Promise(resolve => setTimeout(resolve, 10));
+                }
+
+                statusDiv.textContent = 'Creating video...';
+
+                // Run FFmpeg command with explicit MP4 settings
+                await ffmpeg.run(
+                    '-framerate', '30',
+                    '-i', 'frame_%05d.png',
+                    '-c:v', 'libx264',
+                    '-pix_fmt', 'yuv420p',
+                    '-preset', 'medium',
+                    '-crf', '23',
+                    '-movflags', '+faststart',
+                    '-f', 'mp4',  // Explicitly specify MP4 format
+                    '-y',         // Overwrite output file if it exists
+                    'output.mp4'
+                );
+
+                // Read the output file
+                const data = ffmpeg.FS('readFile', 'output.mp4');
+                
+                // Create download link with explicit MP4 MIME type and content disposition
+                const blob = new Blob([data.buffer], { 
+                    type: 'video/mp4; codecs="avc1.42E01E"'  // Explicit H.264 codec
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'meme_with_overlay.mp4';
+                // Force content disposition to download as MP4
+                a.setAttribute('download', 'meme_with_overlay.mp4');
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // Clean up
+                frames.forEach((_, i) => {
+                    try {
+                        ffmpeg.FS('unlink', `frame_${i.toString().padStart(5, '0')}.png`);
+                    } catch (e) {
+                        console.warn('Error cleaning up frame:', i, e);
+                    }
+                });
+                ffmpeg.FS('unlink', 'output.mp4');
+
+                statusDiv.textContent = 'Export complete!';
+            } catch (error) {
+                console.error('Error during export:', error);
+                statusDiv.textContent = 'Error during export: ' + error.message;
+            }
+        });
+    }
 
     // Add event listener for the Set Image button
     document.getElementById('setImageName').addEventListener('click', () => {
@@ -650,7 +743,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateUIColors() {
         const face = faces[currentFace];
         const color = face.color;
-        const solidColor = color.replace('0.3', '1'); // Make color solid for UI
+        const solidColor = color.replace('0.3', '1');
 
         // Update control group backgrounds
         document.querySelectorAll('.control-group').forEach(group => {
@@ -668,8 +761,132 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('input[type="range"]').forEach(range => {
             range.style.accentColor = solidColor;
         });
+
+        // Update save button text to indicate current face
+        const saveButton = document.getElementById('saveSquareData');
+        saveButton.textContent = `Save Face ${currentFace.replace('face', '')} Data`;
+        saveButton.style.backgroundColor = solidColor;
     }
 
     // Update initial UI colors
     updateUIColors();
+
+    // Add mask drawing functionality
+    const startMaskBtn = document.getElementById('startMask');
+    const finishMaskBtn = document.getElementById('finishMask');
+    const clearMaskBtn = document.getElementById('clearMask');
+
+    startMaskBtn.addEventListener('click', () => {
+        console.log('Start Mask clicked');
+        isDrawingMask = true;
+        maskPoints = [];
+        startMaskBtn.style.display = 'none';
+        finishMaskBtn.style.display = 'inline';
+        clearMaskBtn.style.display = 'inline';
+        console.log('Drawing mode:', isDrawingMask);
+    });
+
+    finishMaskBtn.addEventListener('click', () => {
+        if (maskPoints.length >= 3) {
+            // Save mask points to current face data
+            const face = faces[currentFace];
+            if (!face.frameData[Math.floor(currentFrame)]) {
+                // Initialize frame data if it doesn't exist
+                face.frameData[Math.floor(currentFrame)] = {
+                    position: { x: 0, y: 0 },
+                    scale: 1,
+                    scaleX: 1,
+                    scaleY: 1,
+                    finalScale: { x: 1, y: 1 },
+                    rotation: 0,
+                    xFlip: false,
+                    imageName: 'Default',
+                    maskPoints: [...maskPoints]
+                };
+            } else {
+                face.frameData[Math.floor(currentFrame)].maskPoints = [...maskPoints];
+            }
+        }
+        isDrawingMask = false;
+        maskPoints = [];
+        startMaskBtn.style.display = 'inline';
+        finishMaskBtn.style.display = 'none';
+        clearMaskBtn.style.display = 'none';
+        drawFrame();
+    });
+
+    clearMaskBtn.addEventListener('click', () => {
+        maskPoints = [];
+        const face = faces[currentFace];
+        if (face.frameData[Math.floor(currentFrame)]) {
+            face.frameData[Math.floor(currentFrame)].maskPoints = [];
+        }
+        drawFrame();
+    });
+
+    // Update the canvas click handler with more debug logs
+    canvas.addEventListener('click', (e) => {
+        console.log('Canvas clicked!');
+        console.log('Drawing mode (isDrawingMask):', isDrawingMask);
+        console.log('Event details:', {
+            clientX: e.clientX,
+            clientY: e.clientY,
+            target: e.target,
+            currentTarget: e.currentTarget
+        });
+
+        if (!isDrawingMask) {
+            console.log('Not in drawing mode, returning');
+            return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        console.log('Canvas rect:', rect);
+
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        console.log('Calculated canvas coordinates:', { x, y });
+
+        // Draw immediate feedback point
+        console.log('Attempting to draw feedback point...');
+        try {
+            ctx.save();
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.arc(x, y, 5, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+            console.log('Successfully drew feedback point');
+        } catch (error) {
+            console.error('Error drawing feedback point:', error);
+        }
+
+        // Get current face data
+        const face = faces[currentFace];
+        const data = face.frameData[Math.floor(currentFrame)] || face.frameData[0];
+        console.log('Current face data:', data);
+
+        // Transform calculations
+        const dx = x - data.position.x;
+        const dy = y - data.position.y;
+        const angle = -data.rotation * Math.PI / 180;
+        const localX = (dx * Math.cos(angle) - dy * Math.sin(angle)) / (data.scale * data.scaleX) + 100;
+        const localY = (dx * Math.sin(angle) + dy * Math.cos(angle)) / (data.scale * data.scaleY) + 100;
+
+        console.log('Transform calculations:', {
+            dx,
+            dy,
+            angle,
+            localX,
+            localY
+        });
+
+        maskPoints.push({ x: localX, y: localY });
+        console.log('Updated maskPoints array:', maskPoints);
+
+        // Draw all points and lines
+        console.log('Calling drawFrame...');
+        drawFrame();
+        console.log('drawFrame completed');
+    });
 }); 
