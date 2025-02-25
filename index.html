@@ -12,12 +12,26 @@
         <div class="control-group">
             <label>Load Video:</label>
             <input type="file" id="videoInput" accept="video/*">
+            <!-- Add default video source -->
+            <video id="defaultVideo" style="display: none;" src="02_ChairShot.mp4"></video>
         </div>
 
         <!-- Add image replacement control -->
         <div class="control-group">
             <button id="replaceImageButton" class="excluded-from-color">Replace Default Face Image</button>
             <input type="file" id="replaceImageUpload" accept="image/*" style="display: none;">
+            <!-- Move mask controls here -->
+            <button id="startMask">Start Mask</button>
+            <button id="finishMask" style="display: none;">Finish Mask</button>
+            <button id="clearMask" style="display: none;">Clear Mask</button>
+            <!-- Add default JSON data -->
+            <script>
+                fetch('2heads.json')
+                    .then(response => response.json())
+                    .then(data => {
+                        window.defaultJsonData = data;
+                    });
+            </script>
         </div>
 
         <!-- Video and overlay controls -->
@@ -32,13 +46,6 @@
             <input type="file" id="faceImageUpload" accept="image/*" style="display: none;">
         </div>
 
-        <!-- Add mask controls here -->
-        <div class="control-group">
-            <button id="startMask">Start Mask</button>
-            <button id="finishMask" style="display: none;">Finish Mask</button>
-            <button id="clearMask" style="display: none;">Clear Mask</button>
-        </div>
-        
         <!-- Frame counter -->
         <div id="frameCounter" class="frame-counter">
             Frame: <span id="currentFrameDisplay">0</span> / <span id="totalFramesDisplay">0</span>

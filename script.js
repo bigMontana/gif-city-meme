@@ -77,6 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
     let maskPoints = [];
     let isDrawingMask = false;
 
+    // Add these variables near the top with other state variables
+    let isDragging = false;
+    let lastPoint = null;
+    let controlPoint = null;
+
     // Add face management with colors
     let faces = {
         face1: {
@@ -216,18 +221,37 @@ document.addEventListener('DOMContentLoaded', () => {
                 ctx.fillStyle = face.color;
                 ctx.fillRect(-100, -100, 200, 200);
                 
+                // Set global alpha to 0.5 before drawing the face image
+                ctx.globalAlpha = 0.5;
                 // Draw the overlay image
                 ctx.drawImage(face.overlayImage, -100, -100, 200, 200);
+                // Reset global alpha back to 1.0 for other drawings
+                ctx.globalAlpha = 1.0;
 
                 // Only draw mask if it exists in the current frame's data
                 const currentFrameData = face.frameData[Math.floor(currentFrame)];
                 if (currentFrameData?.maskPoints?.length > 0) {
                     ctx.beginPath();
-                    ctx.moveTo(currentFrameData.maskPoints[0].x - 100, currentFrameData.maskPoints[0].y - 100);
-                    for (let i = 1; i < currentFrameData.maskPoints.length; i++) {
-                        ctx.lineTo(currentFrameData.maskPoints[i].x - 100, currentFrameData.maskPoints[i].y - 100);
+                    
+                    for (let i = 0; i < currentFrameData.maskPoints.length; i++) {
+                        const point = currentFrameData.maskPoints[i];
+                        if (i === 0 || point.type === 'point') {
+                            ctx.moveTo(point.x - 100, point.y - 100);
+                        } else if (point.type === 'curve') {
+                            const prevPoint = currentFrameData.maskPoints[i - 1];
+                            ctx.quadraticCurveTo(
+                                point.controlX - 100, 
+                                point.controlY - 100,
+                                point.x - 100, 
+                                point.y - 100
+                            );
+                        }
                     }
-                    ctx.closePath();
+
+                    if (currentFrameData.maskPoints.length > 2) {
+                        ctx.closePath();
+                    }
+                    
                     ctx.strokeStyle = '#00ff00';
                     ctx.lineWidth = 3;
                     ctx.stroke();
@@ -788,23 +812,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
     finishMaskBtn.addEventListener('click', () => {
         if (maskPoints.length >= 3) {
-            // Save mask points to current face data
             const face = faces[currentFace];
-            if (!face.frameData[Math.floor(currentFrame)]) {
-                // Initialize frame data if it doesn't exist
+            const currentData = face.frameData[Math.floor(currentFrame)];
+            
+            // If we have existing data, merge the mask points with it
+            if (currentData) {
+                currentData.maskPoints = [...maskPoints];
+            } else {
+                // Initialize frame data with current face position and mask
                 face.frameData[Math.floor(currentFrame)] = {
-                    position: { x: 0, y: 0 },
-                    scale: 1,
-                    scaleX: 1,
-                    scaleY: 1,
-                    finalScale: { x: 1, y: 1 },
-                    rotation: 0,
-                    xFlip: false,
-                    imageName: 'Default',
+                    ...face.frameData[0], // Copy initial data
                     maskPoints: [...maskPoints]
                 };
-            } else {
-                face.frameData[Math.floor(currentFrame)].maskPoints = [...maskPoints];
             }
         }
         isDrawingMask = false;
@@ -824,69 +843,136 @@ document.addEventListener('DOMContentLoaded', () => {
         drawFrame();
     });
 
-    // Update the canvas click handler with more debug logs
-    canvas.addEventListener('click', (e) => {
-        console.log('Canvas clicked!');
-        console.log('Drawing mode (isDrawingMask):', isDrawingMask);
-        console.log('Event details:', {
-            clientX: e.clientX,
-            clientY: e.clientY,
-            target: e.target,
-            currentTarget: e.currentTarget
-        });
-
-        if (!isDrawingMask) {
-            console.log('Not in drawing mode, returning');
-            return;
-        }
+    // Update the canvas event handlers
+    canvas.addEventListener('mousedown', (e) => {
+        if (!isDrawingMask) return;
 
         const rect = canvas.getBoundingClientRect();
-        console.log('Canvas rect:', rect);
-
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        console.log('Calculated canvas coordinates:', { x, y });
 
-        // Draw immediate feedback point
-        console.log('Attempting to draw feedback point...');
-        try {
-            ctx.save();
-            ctx.fillStyle = 'red';
-            ctx.beginPath();
-            ctx.arc(x, y, 5, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-            console.log('Successfully drew feedback point');
-        } catch (error) {
-            console.error('Error drawing feedback point:', error);
-        }
+        isDragging = true;
+        lastPoint = { x, y };
 
-        // Get current face data
+        // Get current face data for coordinate transformation
         const face = faces[currentFace];
         const data = face.frameData[Math.floor(currentFrame)] || face.frameData[0];
-        console.log('Current face data:', data);
 
-        // Transform calculations
+        // Transform coordinates relative to face center
         const dx = x - data.position.x;
         const dy = y - data.position.y;
         const angle = -data.rotation * Math.PI / 180;
-        const localX = (dx * Math.cos(angle) - dy * Math.sin(angle)) / (data.scale * data.scaleX) + 100;
-        const localY = (dx * Math.sin(angle) + dy * Math.cos(angle)) / (data.scale * data.scaleY) + 100;
+        const scaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
+        const scaleY = data.scale * data.scaleY;
+        
+        // Calculate local coordinates
+        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
+        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
 
-        console.log('Transform calculations:', {
-            dx,
-            dy,
-            angle,
-            localX,
-            localY
+        if (maskPoints.length === 0 || e.shiftKey) {
+            maskPoints.push({ x: localX, y: localY, type: 'point' });
+        }
+        
+        drawFrame();
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawingMask || !isDragging || !lastPoint) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+        // Get current face data for coordinate transformation
+        const face = faces[currentFace];
+        const data = face.frameData[Math.floor(currentFrame)] || face.frameData[0];
+
+        // Transform coordinates relative to face center
+        const dx = x - data.position.x;
+        const dy = y - data.position.y;
+        const angle = -data.rotation * Math.PI / 180;
+        const scaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
+        const scaleY = data.scale * data.scaleY;
+        
+        // Calculate local coordinates
+        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
+        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
+
+        // Calculate control point
+        controlPoint = {
+            x: (lastPoint.x + x) / 2,
+            y: (lastPoint.y + y) / 2
+        };
+
+        // Add curve point with properly transformed coordinates
+        maskPoints.push({ 
+            x: localX, 
+            y: localY, 
+            type: 'curve',
+            controlX: localX,
+            controlY: localY
         });
 
-        maskPoints.push({ x: localX, y: localY });
-        console.log('Updated maskPoints array:', maskPoints);
-
-        // Draw all points and lines
-        console.log('Calling drawFrame...');
         drawFrame();
-        console.log('drawFrame completed');
     });
+
+    canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+        lastPoint = null;
+        controlPoint = null;
+    });
+
+    // Update the keyboard controls
+    document.addEventListener('keydown', (e) => {
+        // Only trigger if we're not in an input field
+        if (e.target.tagName === 'INPUT') return;
+        
+        if (e.key === 'ArrowLeft') {
+            // Previous frame
+            if (currentFrame > 0) {
+                updateFrameAndScrubber(currentFrame - 1);
+            }
+        } else if (e.key === 'ArrowRight') {
+            // Next frame
+            if (currentFrame < totalFrames - 1) {
+                updateFrameAndScrubber(currentFrame + 1);
+            }
+        } else if (e.key.toLowerCase() === 'q') {
+            // Trigger save face button
+            document.getElementById('saveSquareData').click();
+        }
+    });
+
+    // Load default video
+    const defaultVideo = document.getElementById('defaultVideo');
+    defaultVideo.addEventListener('loadedmetadata', () => {
+        video.src = defaultVideo.src;
+        video.load();
+    });
+
+    // Load default JSON data
+    if (window.defaultJsonData) {
+        loadJsonData(window.defaultJsonData);
+    }
+
+    // Add helper function if it doesn't exist
+    function loadJsonData(data) {
+        if (data.faces) {
+            faces = data.faces;
+            // Reload images for each face
+            Object.keys(faces).forEach(faceId => {
+                const face = faces[faceId];
+                if (face.overlayImage) {
+                    const img = new Image();
+                    img.src = face.overlayImage.src || 'GERGFACE.png';
+                    face.overlayImage = img;
+                }
+            });
+        }
+        if (data.totalFrames) {
+            totalFrames = data.totalFrames;
+            updateTotalFramesDisplay();
+        }
+        drawFrame();
+    }
 }); 
