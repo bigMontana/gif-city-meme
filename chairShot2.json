@@ -1,0 +1,975 @@
+{
+  "videoName": "02_ChairShot.mp4",
+  "totalFrames": 108,
+  "faces": {
+    "face1": {
+      "0": {
+        "position": {
+          "x": 752,
+          "y": 371
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "4": {
+        "position": {
+          "x": 738,
+          "y": 371
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "8": {
+        "position": {
+          "x": 727,
+          "y": 383
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "11": {
+        "position": {
+          "x": 715,
+          "y": 392
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 0,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "14": {
+        "position": {
+          "x": 701,
+          "y": 397
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -3,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "19": {
+        "position": {
+          "x": 687,
+          "y": 395
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -3,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "24": {
+        "position": {
+          "x": 666,
+          "y": 395
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -3,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "46": {
+        "position": {
+          "x": 662,
+          "y": 395
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -3,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "49": {
+        "position": {
+          "x": 646,
+          "y": 397
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "57": {
+        "position": {
+          "x": 637,
+          "y": 409
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "60": {
+        "position": {
+          "x": 643,
+          "y": 416
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "65": {
+        "position": {
+          "x": 658,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "67": {
+        "position": {
+          "x": 658,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -20,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "69": {
+        "position": {
+          "x": 660,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -24,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "71": {
+        "position": {
+          "x": 702,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -27,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "72": {
+        "position": {
+          "x": 710,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -27,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "73": {
+        "position": {
+          "x": 724,
+          "y": 411
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -21,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "75": {
+        "position": {
+          "x": 766,
+          "y": 415
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -21,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "77": {
+        "position": {
+          "x": 808,
+          "y": 415
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": -8,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "79": {
+        "position": {
+          "x": 864,
+          "y": 387
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 13,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "81": {
+        "position": {
+          "x": 871,
+          "y": 387
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 13,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "82": {
+        "position": {
+          "x": 892,
+          "y": 387
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 18,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "83": {
+        "position": {
+          "x": 927,
+          "y": 387
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 18,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "89": {
+        "position": {
+          "x": 936,
+          "y": 387
+        },
+        "scale": 1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1,
+          "y": 1
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "90": {
+        "position": {
+          "x": 710,
+          "y": 363
+        },
+        "scale": 0.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.9,
+          "y": 0.9
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Side",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "93": {
+        "position": {
+          "x": 724,
+          "y": 375
+        },
+        "scale": 0.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.9,
+          "y": 0.9
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Side",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "97": {
+        "position": {
+          "x": 745,
+          "y": 363
+        },
+        "scale": 0.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.9,
+          "y": 0.9
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Side",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "101": {
+        "position": {
+          "x": 745,
+          "y": 356
+        },
+        "scale": 0.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.9,
+          "y": 0.9
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Side",
+        "maskDataURL": null,
+        "maskPoints": []
+      },
+      "107": {
+        "position": {
+          "x": 745,
+          "y": 356
+        },
+        "scale": 0.9,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.9,
+          "y": 0.9
+        },
+        "rotation": 10,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Side",
+        "maskDataURL": null,
+        "maskPoints": []
+      }
+    },
+    "face2": {
+      "0": {
+        "position": {
+          "x": 1264,
+          "y": 249
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 13,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "8": {
+        "position": {
+          "x": 1256,
+          "y": 261
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 13,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "19": {
+        "position": {
+          "x": 1247,
+          "y": 261
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 7,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "23": {
+        "position": {
+          "x": 1247,
+          "y": 245
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 7,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Back",
+        "maskDataURL": null
+      },
+      "28": {
+        "position": {
+          "x": 1278,
+          "y": 239
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 7,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Back",
+        "maskDataURL": null
+      },
+      "32": {
+        "position": {
+          "x": 1290,
+          "y": 239
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 7,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Back",
+        "maskDataURL": null
+      },
+      "49": {
+        "position": {
+          "x": 1266,
+          "y": 239
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 4,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "53": {
+        "position": {
+          "x": 1241,
+          "y": 239
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 4,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "61": {
+        "position": {
+          "x": 1232,
+          "y": 243
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 4,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "65": {
+        "position": {
+          "x": 1232,
+          "y": 258
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": -4,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "70": {
+        "position": {
+          "x": 1221,
+          "y": 267
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": -4,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "73": {
+        "position": {
+          "x": 1204,
+          "y": 273
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "75": {
+        "position": {
+          "x": 1196,
+          "y": 284
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": -11,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "78": {
+        "position": {
+          "x": 1170,
+          "y": 296
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": -20,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "83": {
+        "position": {
+          "x": 1170,
+          "y": 306
+        },
+        "scale": 1.1,
+        "scaleX": 1.2,
+        "scaleY": 0.5,
+        "finalScale": {
+          "x": 1.32,
+          "y": 0.55
+        },
+        "rotation": -20,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "86": {
+        "position": {
+          "x": 1227,
+          "y": 282
+        },
+        "scale": 1.1,
+        "scaleX": 0.7,
+        "scaleY": 1.3,
+        "finalScale": {
+          "x": 0.77,
+          "y": 1.4300000000000002
+        },
+        "rotation": 15,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "88": {
+        "position": {
+          "x": 1286,
+          "y": 311
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 15,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "89": {
+        "position": {
+          "x": 1286,
+          "y": 311
+        },
+        "scale": 1.1,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 1.1,
+          "y": 1.1
+        },
+        "rotation": 20,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "90": {
+        "position": {
+          "x": 1127,
+          "y": 311
+        },
+        "scale": 0.7,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 20,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "93": {
+        "position": {
+          "x": 1160,
+          "y": 282
+        },
+        "scale": 0.7,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 39,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "98": {
+        "position": {
+          "x": 1286,
+          "y": 347
+        },
+        "scale": 0.7,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 51,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "103": {
+        "position": {
+          "x": 1446,
+          "y": 448
+        },
+        "scale": 0.7,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 141,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      },
+      "107": {
+        "position": {
+          "x": 1606,
+          "y": 606
+        },
+        "scale": 0.7,
+        "scaleX": 1,
+        "scaleY": 1,
+        "finalScale": {
+          "x": 0.7,
+          "y": 0.7
+        },
+        "rotation": 180,
+        "xFlip": false,
+        "hidden": false,
+        "imageName": "Default",
+        "maskDataURL": null
+      }
+    }
+  }
+}

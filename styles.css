@@ -177,4 +177,27 @@ button:hover {
 .face-controls button {
     margin: 0;  /* Override default button margin */
     min-width: 100px;  /* Ensure buttons have consistent width */
+}
+
+.used-images {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+
+.image-name-button {
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    margin: 2px;
+    transition: background-color 0.2s;
+}
+
+.image-name-button:hover {
+    background-color: #0056b3;
 } 

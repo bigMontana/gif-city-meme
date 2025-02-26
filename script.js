@@ -3,8 +3,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.getElementById('videoCanvas');
     const ctx = canvas.getContext('2d');
     const video = document.createElement('video');
-    video.src = '02_ChairShot.mp4';
     
+    // Add video input handler
+    const videoInput = document.getElementById('videoInput');
+    videoInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            // Create a URL for the uploaded video
+            const videoUrl = URL.createObjectURL(file);
+            
+            // Update video source
+            video.src = videoUrl;
+            
+            // Reset current frame and update video
+            currentFrame = 0;
+            
+            // Wait for video metadata to load
+            video.addEventListener('loadedmetadata', () => {
+                // Update canvas dimensions
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                
+                // Update total frames
+                totalFrames = Math.floor(video.duration * frameRate);
+                totalFramesDisplay.textContent = totalFrames;
+                
+                // Update scrubber
+                const scrubber = document.getElementById('videoScrubber');
+                scrubber.max = totalFrames - 1;
+                scrubber.value = 0;
+                
+                // Update current frame display
+                currentFrameDisplay.textContent = '0';
+                
+                // Force initial frame draw
+                video.currentTime = 0;
+                drawFrame();
+                updateFrameMarkers();
+            }, { once: true }); // Only run this once
+            
+            // Clean up the file input
+            e.target.value = '';
+        }
+    });
+
+    // Set default video if no file is selected
+    if (!video.src) {
+        video.src = '02_ChairShot.mp4';
+    }
+
     // Add image replacement functionality for default face - Move this up near the start
     const replaceImageButton = document.getElementById('replaceImageButton');
     const replaceImageUpload = document.getElementById('replaceImageUpload');
@@ -70,9 +117,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentFrameDisplay = document.getElementById('currentFrameDisplay');
     const totalFramesDisplay = document.getElementById('totalFramesDisplay');
 
-    // Add this at the top with other state variables
-    let usedImageNames = new Set(['Default']);
-
     // Add near the top with other state variables
     let maskPoints = [];
     let isDrawingMask = false;
@@ -82,7 +126,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastPoint = null;
     let controlPoint = null;
 
-    // Add face management with colors
+    // Add these variables near the top with other state variables
+    let selectedPoint = null;
+    let isDraggingControlPoint = false;
+    let showControlPoints = true;
+
+    // Add this variable near the top with other state variables
+    let isEditingMask = false;
+
+    // Add these variables near the top with other state variables
+    let copiedMaskPoints = null;
+    let hasCopiedMask = false;
+
+    // Move the initialization of faces before any function that uses it
+    // Add this near the top with other state variables
     let faces = {
         face1: {
             overlayImage: new Image(),
@@ -99,7 +156,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             imageName: 'Default',
-            color: 'rgba(255, 0, 0, 0.3)' // Red with 0.3 opacity
+            color: 'rgba(255, 0, 0, 0.3)', // Red with 0.3 opacity
+            usedImageNames: new Set(['Default']) // Initialize with Default
         }
     };
     let currentFace = 'face1';
@@ -131,16 +189,37 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update controls and colors
         updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
         updateUIColors();
+        
+        // Update the used image names for the new face
+        updateUsedImageNames();
     });
+
+    // Add this near the top with other state variables
+    const MAX_FACES = 5;
+    const FACE_COLORS = {
+        face1: 'rgba(255, 0, 0, 0.3)',   // Red
+        face2: 'rgba(0, 0, 255, 0.3)',   // Blue
+        face3: 'rgba(0, 255, 0, 0.3)',   // Green
+        face4: 'rgba(255, 165, 0, 0.3)', // Orange
+        face5: 'rgba(128, 0, 128, 0.3)'  // Purple
+    };
 
     // Update the face creation code
     faceImageUpload.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) {
             const faceNum = Object.keys(faces).length + 1;
+            
+            // Check if we've reached the maximum number of faces
+            if (faceNum > MAX_FACES) {
+                alert('Maximum number of faces (5) reached!');
+                e.target.value = '';
+                return;
+            }
+            
             const faceId = `face${faceNum}`;
             
-            // Create new face object with color
+            // Create new face object with color from FACE_COLORS
             faces[faceId] = {
                 overlayImage: new Image(),
                 frameData: {
@@ -156,7 +235,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 },
                 imageName: 'Default',
-                color: 'rgba(0, 0, 255, 0.3)' // Blue with 0.3 opacity
+                color: FACE_COLORS[faceId],
+                usedImageNames: new Set(['Default'])
             };
 
             // Create URL for the uploaded image
@@ -174,6 +254,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Update UI colors for new face
                 updateUIColors();
+                
+                // Update the used image names display
+                updateUsedImageNames();
 
                 // Force redraw
                 drawFrame();
@@ -185,6 +268,31 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Update the Add Face button to show/hide based on face count
+    function updateAddFaceButton() {
+        const faceCount = Object.keys(faces).length;
+        const addFaceButton = document.getElementById('addFaceButton');
+        
+        if (addFaceButton) {
+            addFaceButton.style.display = faceCount >= MAX_FACES ? 'none' : 'inline';
+            addFaceButton.title = faceCount >= MAX_FACES ? 
+                'Maximum number of faces reached' : 
+                `Add face (${faceCount}/${MAX_FACES})`;
+        }
+    }
+
+    // Call this after creating a new face and after loading JSON
+    updateAddFaceButton();
+
+    // Add these variables near the top with other state variables
+    let isPainting = false;
+    let maskCanvas = document.createElement('canvas');
+    let maskCtx = maskCanvas.getContext('2d');
+    let brushSize = 20;
+    let brushColor = 'rgba(255, 255, 255, 0.3)'; // White for visible areas
+    let eraserMode = false;
+    let isDrawing = false; // Add this if it's missing
+
     // Function to draw the current frame
     function drawFrame() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -193,6 +301,9 @@ document.addEventListener('DOMContentLoaded', () => {
         // Draw all faces
         Object.keys(faces).forEach(faceId => {
             const face = faces[faceId];
+            
+            // Skip if face doesn't have frameData
+            if (!face || !face.frameData) return;
             
             // Find the last known frame data for face position/scale
             const frameNumbers = Object.keys(face.frameData)
@@ -204,7 +315,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 face.frameData[frameNumbers[0]] : 
                 face.frameData[0];  // fallback to initial frame
             
-            if (face.overlayImage.complete && data) {
+            // Define currentFrameData here to fix the reference error
+            const currentFrameData = face.frameData[Math.floor(currentFrame)];
+            
+            if (face.overlayImage && face.overlayImage.complete && data) {
                 // Skip drawing if face is hidden
                 if (data.hidden) return;
 
@@ -223,71 +337,69 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 // Set global alpha to 0.5 before drawing the face image
                 ctx.globalAlpha = 0.5;
+                
                 // Draw the overlay image
                 ctx.drawImage(face.overlayImage, -100, -100, 200, 200);
+                
                 // Reset global alpha back to 1.0 for other drawings
                 ctx.globalAlpha = 1.0;
 
-                // Only draw mask if it exists in the current frame's data
-                const currentFrameData = face.frameData[Math.floor(currentFrame)];
-                if (currentFrameData?.maskPoints?.length > 0) {
-                    ctx.beginPath();
+                // If we're actively painting on this face, show the mask canvas as an overlay
+                if (faceId === currentFace && isPainting) {
+                    // Show a preview of what's being painted (as areas to be erased)
+                    ctx.globalCompositeOperation = 'destination-out';
+                    ctx.drawImage(maskCanvas, -100, -100, 200, 200);
+                    ctx.globalCompositeOperation = 'source-over';
                     
-                    for (let i = 0; i < currentFrameData.maskPoints.length; i++) {
-                        const point = currentFrameData.maskPoints[i];
-                        if (i === 0 || point.type === 'point') {
-                            ctx.moveTo(point.x - 100, point.y - 100);
-                        } else if (point.type === 'curve') {
-                            const prevPoint = currentFrameData.maskPoints[i - 1];
-                            ctx.quadraticCurveTo(
-                                point.controlX - 100, 
-                                point.controlY - 100,
-                                point.x - 100, 
-                                point.y - 100
-                            );
-                        }
-                    }
-
-                    if (currentFrameData.maskPoints.length > 2) {
-                        ctx.closePath();
-                    }
-                    
-                    ctx.strokeStyle = '#00ff00';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-
-                    // Draw points at vertices
-                    ctx.fillStyle = '#00ff00';
-                    currentFrameData.maskPoints.forEach(point => {
+                    // Draw the current brush position if we're drawing
+                    if (isDrawing && lastPoint) {
+                        ctx.fillStyle = eraserMode ? 'rgba(0, 255, 0, 0.5)' : 'rgba(255, 0, 0, 0.5)';
                         ctx.beginPath();
-                        ctx.arc(point.x - 100, point.y - 100, 3, 0, Math.PI * 2);
+                        ctx.arc(lastPoint.x - 100, lastPoint.y - 100, brushSize/2, 0, Math.PI * 2);
                         ctx.fill();
-                    });
-                }
-                
-                // Draw current mask points only if actively drawing mask
-                if (isDrawingMask && faceId === currentFace && maskPoints.length > 0) {
-                    ctx.beginPath();
-                    ctx.moveTo(maskPoints[0].x - 100, maskPoints[0].y - 100);
-                    for (let i = 1; i < maskPoints.length; i++) {
-                        ctx.lineTo(maskPoints[i].x - 100, maskPoints[i].y - 100);
                     }
-                    ctx.strokeStyle = '#ff0000';
-                    ctx.lineWidth = 3;
-                    ctx.stroke();
-
-                    // Draw points at vertices
-                    ctx.fillStyle = '#ff0000';
-                    maskPoints.forEach(point => {
-                        ctx.beginPath();
-                        ctx.arc(point.x - 100, point.y - 100, 3, 0, Math.PI * 2);
-                        ctx.fill();
-                    });
+                } 
+                // Apply saved mask if not currently painting this face
+                else if (currentFrameData?.maskDataURL) {
+                    // If we have a saved mask data URL, use it
+                    if (!currentFrameData.maskImage) {
+                        // Create an image from the data URL if not already created
+                        currentFrameData.maskImage = new Image();
+                        currentFrameData.maskImage.src = currentFrameData.maskDataURL;
+                        currentFrameData.maskImage.onload = () => drawFrame();
+                    } else if (currentFrameData.maskImage.complete) {
+                        // Apply the mask as a cutout (invert the behavior)
+                        ctx.globalCompositeOperation = 'destination-out';
+                        ctx.drawImage(currentFrameData.maskImage, -100, -100, 200, 200);
+                        ctx.globalCompositeOperation = 'source-over';
+                    }
                 }
                 
                 ctx.restore();
             }
         });
+
+        // Draw logo if needed
+        if (logoImage.complete) {
+            const padding = 40;
+            const logoWidth = 256;  // 20% smaller than 320
+            const logoHeight = 256; // 20% smaller than 320
+            
+            // Set up shadow
+            ctx.save();
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 20;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 5;
+            
+            ctx.drawImage(logoImage, 
+                padding,
+                canvas.height - logoHeight - padding,
+                logoWidth,
+                logoHeight
+            );
+            ctx.restore();
+        }
     }
 
     // Video load event
@@ -310,12 +422,16 @@ document.addEventListener('DOMContentLoaded', () => {
             maskPoints = [];
             // Reset mask drawing mode and buttons
             isDrawingMask = false;
-            startMaskBtn.style.display = 'inline';
-            finishMaskBtn.style.display = 'none';
-            clearMaskBtn.style.display = 'none';
+            isEditingMask = false;
+            
+            // Add null checks for all button elements
+            if (startMaskBtn) startMaskBtn.style.display = 'inline';
+            if (finishMaskBtn) finishMaskBtn.style.display = 'none';
+            if (clearMaskBtn) clearMaskBtn.style.display = 'none';
+            if (editMaskBtn) editMaskBtn.style.display = 'inline';
             
             video.currentTime = currentFrame / frameRate;
-            currentFrameDisplay.textContent = currentFrame;
+            if (currentFrameDisplay) currentFrameDisplay.textContent = currentFrame;
             updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
         });
         
@@ -339,14 +455,31 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Clear temporary mask points when changing frames
         maskPoints = [];
-        // Reset mask drawing mode and buttons
+        // Reset mask drawing and editing mode
         isDrawingMask = false;
+        isEditingMask = false;
+        isPainting = false;
+        
+        // Update button visibility
         startMaskBtn.style.display = 'inline';
         finishMaskBtn.style.display = 'none';
         clearMaskBtn.style.display = 'none';
         
+        // Show edit mask button if it exists
+        if (document.getElementById('editMask')) {
+            document.getElementById('editMask').style.display = 'inline';
+        }
+        
+        // Hide brush controls
+        if (eraserToggleBtn) eraserToggleBtn.style.display = 'none';
+        if (brushSizeControl) brushSizeControl.style.display = 'none';
+        
+        // Keep paste button enabled if we have a copied mask
+        if (pasteMaskBtn) pasteMaskBtn.disabled = !hasCopiedMask;
+        
         // Update frame display immediately
-        currentFrameDisplay.textContent = Math.floor(currentFrame);
+        const currentFrameDisplay = document.getElementById('currentFrameDisplay');
+        if (currentFrameDisplay) currentFrameDisplay.textContent = Math.floor(currentFrame);
         
         // Update controls for current face
         updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
@@ -460,16 +593,37 @@ document.addEventListener('DOMContentLoaded', () => {
         URL.revokeObjectURL(url);
     }
 
-    // Update the updateUsedImageNames function
+    // Then update the updateUsedImageNames function to check if faces exists
     function updateUsedImageNames() {
+        // Check if faces object exists
+        if (!faces) return;
+        
         const container = document.getElementById('usedImageNames');
+        if (!container) return;
+        
         container.innerHTML = '';
         
-        usedImageNames.forEach(name => {
-            const tag = document.createElement('span');
-            tag.className = 'image-tag';
-            tag.textContent = name;
-            container.appendChild(tag);
+        // Make sure the current face exists
+        if (!faces[currentFace]) return;
+        
+        // Create the set if it doesn't exist
+        if (!faces[currentFace].usedImageNames) {
+            faces[currentFace].usedImageNames = new Set(['Default']);
+        }
+        
+        // Display only the current face's image names
+        faces[currentFace].usedImageNames.forEach(name => {
+            const button = document.createElement('button');
+            button.className = 'image-name-button';
+            button.textContent = name;
+            
+            // Add click handler to set the image name input
+            button.addEventListener('click', () => {
+                const imageNameInput = document.getElementById('imageName');
+                imageNameInput.value = name;
+            });
+            
+            container.appendChild(button);
         });
     }
 
@@ -481,8 +635,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleYAdjust = parseFloat(scaleY.value);
         const imageName = document.getElementById('imageName').value || 'Default';
         
-        usedImageNames.add(imageName);
+        // Create the set if it doesn't exist
+        if (!face.usedImageNames) {
+            face.usedImageNames = new Set(['Default']);
+        }
+        
+        // Add to the current face's used image names
+        face.usedImageNames.add(imageName);
         updateUsedImageNames();
+        
+        // Get existing frame data to preserve mask
+        const existingData = face.frameData[Math.floor(currentFrame)] || {};
         
         const squareData = {
             position: { x: parseInt(posX.value), y: parseInt(posY.value) },
@@ -494,8 +657,10 @@ document.addEventListener('DOMContentLoaded', () => {
             xFlip: xFlip.checked,
             hidden: hideFace.checked,
             imageName: imageName,
-            // Include the current mask points if they exist in the frame data
-            maskPoints: face.frameData[Math.floor(currentFrame)]?.maskPoints || []
+            // Preserve the mask data URL if it exists
+            maskDataURL: existingData.maskDataURL || null,
+            // Preserve the mask image if it exists
+            maskImage: existingData.maskImage || null
         };
         
         // Only save data for current face
@@ -510,10 +675,17 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update JSON download to include all faces
     document.getElementById('downloadJSON').addEventListener('click', () => {
         const fullData = {
-            videoName: '02_ChairShot.mp4',
+            videoName: video.src.includes('blob:') ? 'custom_video' : '02_ChairShot.mp4',
             totalFrames: totalFrames,
             faces: Object.keys(faces).reduce((acc, faceId) => {
-                acc[faceId] = faces[faceId].frameData;
+                // Create a deep copy of the frame data without the maskImage objects
+                acc[faceId] = Object.keys(faces[faceId].frameData).reduce((frames, frameNum) => {
+                    const frameData = {...faces[faceId].frameData[frameNum]};
+                    // Remove the Image object but keep the data URL
+                    delete frameData.maskImage;
+                    frames[frameNum] = frameData;
+                    return frames;
+                }, {});
                 return acc;
             }, {})
         };
@@ -531,9 +703,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Fine-tuning button functionality
     document.querySelectorAll('.fine-tune-btn').forEach(button => {
-        button.addEventListener('click', () => {
+        button.addEventListener('click', (e) => {
             const targetId = button.dataset.target;
-            const step = parseFloat(button.dataset.step);
+            // Get the base step value
+            let step = parseFloat(button.dataset.step);
+            
+            // If shift key is pressed, apply multiplier based on control type
+            if (e.shiftKey) {
+                // Use 10x multiplier for position controls
+                if (targetId === 'posX' || targetId === 'posY') {
+                    step *= 10;
+                } else {
+                    // Use 5x multiplier for other controls
+                    step *= 5;
+                }
+            }
+            
             const input = document.getElementById(targetId);
             
             // Get current value and calculate new value
@@ -547,7 +732,8 @@ document.addEventListener('DOMContentLoaded', () => {
             input.value = newValue;
             
             // Trigger the input event to update the display and overlay
-            input.dispatchEvent(new Event('input'));
+            const event = new Event('input', { bubbles: true });
+            input.dispatchEvent(event);
         });
     });
 
@@ -580,39 +766,73 @@ document.addEventListener('DOMContentLoaded', () => {
     // Update JSON loading to handle multiple faces
     function handleJSONLoad(jsonData) {
         if (jsonData.faces) {
+            // Check if JSON has too many faces
+            if (Object.keys(jsonData.faces).length > MAX_FACES) {
+                alert(`Warning: JSON contains more than ${MAX_FACES} faces. Only the first ${MAX_FACES} will be loaded.`);
+            }
+            
             faces = Object.keys(jsonData.faces).reduce((acc, faceId) => {
+                // Skip if we've reached the maximum number of faces
+                if (Object.keys(acc).length >= MAX_FACES) return acc;
+                
                 acc[faceId] = {
                     overlayImage: new Image(),
                     frameData: jsonData.faces[faceId],
-                    imageName: 'Default'
+                    imageName: 'Default',
+                    color: FACE_COLORS[faceId],
+                    usedImageNames: new Set(['Default'])
                 };
                 acc[faceId].overlayImage.src = 'GERGFACE.png';
+                
+                // Collect all unique image names from frame data
+                Object.values(acc[faceId].frameData).forEach(frame => {
+                    if (frame.imageName) {
+                        acc[faceId].usedImageNames.add(frame.imageName);
+                    }
+                });
+                
+                // Preload mask images from data URLs
+                Object.keys(acc[faceId].frameData).forEach(frameNum => {
+                    const frame = acc[faceId].frameData[frameNum];
+                    if (frame.maskDataURL) {
+                        frame.maskImage = new Image();
+                        frame.maskImage.src = frame.maskDataURL;
+                    }
+                });
+                
                 return acc;
             }, {});
-
-            // Update face selector
+            
+            // Update face selector and controls
             toggleFaceButton.textContent = `Face ${Object.keys(faces)[0].replace('face', '')}`;
             currentFace = Object.keys(faces)[0];
             updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
+            updateUsedImageNames();
+            updateAddFaceButton(); // Update the Add Face button visibility
         }
     }
 
     // Also update the frame markers function to use the current face's data
     function updateFrameMarkers() {
         const markersContainer = document.getElementById('frameMarkers');
+        if (!markersContainer) return;
+        
         markersContainer.innerHTML = '';
         
-        // Get all frames that have data for the current face
-        const frames = Object.keys(faces[currentFace].frameData).map(Number);
-        
-        frames.forEach(frame => {
-            const marker = document.createElement('div');
-            marker.className = 'frame-marker';
-            // Calculate position as percentage of total width
-            const position = (frame / (totalFrames - 1)) * 100;
-            marker.style.left = `${position}%`;
-            markersContainer.appendChild(marker);
-        });
+        // Make sure currentFace exists and has frameData
+        if (faces[currentFace] && faces[currentFace].frameData) {
+            // Get all frames that have data for the current face
+            const frames = Object.keys(faces[currentFace].frameData).map(Number);
+            
+            frames.forEach(frame => {
+                const marker = document.createElement('div');
+                marker.className = 'frame-marker';
+                // Calculate position as percentage of total width
+                const position = (frame / (totalFrames - 1)) * 100;
+                marker.style.left = `${position}%`;
+                markersContainer.appendChild(marker);
+            });
+        }
     }
 
     // Export button functionality
@@ -800,64 +1020,266 @@ document.addEventListener('DOMContentLoaded', () => {
     const finishMaskBtn = document.getElementById('finishMask');
     const clearMaskBtn = document.getElementById('clearMask');
 
-    startMaskBtn.addEventListener('click', () => {
-        console.log('Start Mask clicked');
-        isDrawingMask = true;
-        maskPoints = [];
+    startMaskBtn.addEventListener('click', async () => {
+        isPainting = true;
+        isDrawingMask = false; // Disable the old mask system
+        
+        // Load existing mask if available
+        const face = faces[currentFace];
+        const currentData = face.frameData[Math.floor(currentFrame)];
+        
+        if (currentData && currentData.maskDataURL) {
+            await loadMaskFromDataURL(currentData.maskDataURL);
+        } else {
+            clearMaskCanvas();
+        }
+        
+        // Update button visibility
         startMaskBtn.style.display = 'none';
         finishMaskBtn.style.display = 'inline';
         clearMaskBtn.style.display = 'inline';
-        console.log('Drawing mode:', isDrawingMask);
+        eraserToggleBtn.style.display = 'inline';
+        brushSizeControl.style.display = 'flex';
+        
+        // Hide old edit mask button if it exists
+        if (document.getElementById('editMask')) {
+            document.getElementById('editMask').style.display = 'none';
+        }
+        
+        drawFrame();
     });
 
     finishMaskBtn.addEventListener('click', () => {
-        if (maskPoints.length >= 3) {
-            const face = faces[currentFace];
-            const currentData = face.frameData[Math.floor(currentFrame)];
-            
-            // If we have existing data, merge the mask points with it
-            if (currentData) {
-                currentData.maskPoints = [...maskPoints];
-            } else {
-                // Initialize frame data with current face position and mask
-                face.frameData[Math.floor(currentFrame)] = {
-                    ...face.frameData[0], // Copy initial data
-                    maskPoints: [...maskPoints]
-                };
-            }
+        if (!isPainting) return;
+        
+        // Save the mask as a data URL
+        const maskDataURL = maskCanvas.toDataURL('image/png');
+        
+        // Save to the current face's frame data
+        const face = faces[currentFace];
+        if (!face.frameData[Math.floor(currentFrame)]) {
+            face.frameData[Math.floor(currentFrame)] = {
+                ...face.frameData[0] // Copy initial data
+            };
         }
-        isDrawingMask = false;
-        maskPoints = [];
+        
+        // Make sure we're updating the current frame data
+        const currentData = face.frameData[Math.floor(currentFrame)];
+        
+        // Add the mask data URL to the frame data
+        currentData.maskDataURL = maskDataURL;
+        
+        // Create an image from the data URL for immediate display
+        const maskImage = new Image();
+        maskImage.src = maskDataURL;
+        currentData.maskImage = maskImage;
+        
+        // Add console log for debugging
+        console.log('Saved mask data URL:', maskDataURL.substring(0, 50) + '...');
+        
+        // Reset painting state
+        isPainting = false;
+        
+        // Update button visibility
         startMaskBtn.style.display = 'inline';
         finishMaskBtn.style.display = 'none';
         clearMaskBtn.style.display = 'none';
+        eraserToggleBtn.style.display = 'none';
+        brushSizeControl.style.display = 'none';
+        
+        // Show old edit mask button if it exists
+        if (document.getElementById('editMask')) {
+            document.getElementById('editMask').style.display = 'inline';
+        }
+        
+        // Update frame markers and redraw
+        updateFrameMarkers();
         drawFrame();
     });
 
     clearMaskBtn.addEventListener('click', () => {
-        maskPoints = [];
-        const face = faces[currentFace];
-        if (face.frameData[Math.floor(currentFrame)]) {
-            face.frameData[Math.floor(currentFrame)].maskPoints = [];
-        }
+        clearMaskCanvas();
         drawFrame();
     });
 
-    // Update the canvas event handlers
-    canvas.addEventListener('mousedown', (e) => {
-        if (!isDrawingMask) return;
+    // Create brush size control
+    const brushSizeControl = document.createElement('div');
+    brushSizeControl.className = 'control-group';
+    brushSizeControl.innerHTML = `
+        <label>Brush Size:</label>
+        <input type="range" id="brushSize" min="1" max="50" value="20">
+        <span class="value-display" id="brushSizeValue">20</span>
+    `;
 
+    // Create eraser toggle button
+    const eraserToggleBtn = document.createElement('button');
+    eraserToggleBtn.id = 'eraserToggle';
+    eraserToggleBtn.textContent = 'Brush Mode (Erase)';
+    eraserToggleBtn.style.backgroundColor = '#f44336';
+
+    // Add the new controls to the UI
+    clearMaskBtn.parentNode.insertBefore(brushSizeControl, clearMaskBtn.nextSibling);
+    clearMaskBtn.parentNode.insertBefore(eraserToggleBtn, brushSizeControl.nextSibling);
+
+    // Initialize the mask canvas
+    initMaskCanvas();
+
+    // Add brush size control functionality
+    const brushSizeInput = document.getElementById('brushSize');
+    const brushSizeValue = document.getElementById('brushSizeValue');
+
+    brushSizeInput.addEventListener('input', () => {
+        brushSize = parseInt(brushSizeInput.value);
+        brushSizeValue.textContent = brushSize;
+    });
+
+    // Add eraser toggle functionality
+    eraserToggleBtn.addEventListener('click', () => {
+        eraserMode = !eraserMode;
+        if (eraserMode) {
+            eraserToggleBtn.textContent = 'Eraser Mode (Restore)';
+            eraserToggleBtn.style.backgroundColor = '#4CAF50';
+        } else {
+            eraserToggleBtn.textContent = 'Brush Mode (Erase)';
+            eraserToggleBtn.style.backgroundColor = '#f44336';
+        }
+        drawFrame(); // Redraw to update the visual feedback
+    });
+
+    // Update the edit mask button functionality
+    const editMaskBtn = document.getElementById('editMask');
+    if (editMaskBtn) {
+        editMaskBtn.addEventListener('click', async () => {
+            const face = faces[currentFace];
+            const currentData = face.frameData[Math.floor(currentFrame)];
+            
+            if (currentData && currentData.maskDataURL) {
+                isPainting = true;
+                
+                // Load the existing mask
+                await loadMaskFromDataURL(currentData.maskDataURL);
+                
+                // Update button visibility
+                startMaskBtn.style.display = 'none';
+                finishMaskBtn.style.display = 'inline';
+                clearMaskBtn.style.display = 'inline';
+                eraserToggleBtn.style.display = 'inline';
+                brushSizeControl.style.display = 'flex';
+                editMaskBtn.style.display = 'none';
+                
+                drawFrame();
+            } else {
+                alert('No mask to edit on this frame. Create a new mask first.');
+            }
+        });
+    }
+
+    // Update the copy/paste mask functionality
+    const copyMaskBtn = document.getElementById('copyMask');
+    const pasteMaskBtn = document.getElementById('pasteMask');
+
+    if (copyMaskBtn) {
+        copyMaskBtn.addEventListener('click', () => {
+            const face = faces[currentFace];
+            const currentData = face.frameData[Math.floor(currentFrame)];
+            
+            if (currentData && currentData.maskDataURL) {
+                copiedMaskDataURL = currentData.maskDataURL;
+                hasCopiedMask = true;
+                pasteMaskBtn.disabled = false;
+                
+                // Visual feedback
+                copyMaskBtn.textContent = '✓ Mask Copied';
+                setTimeout(() => {
+                    copyMaskBtn.textContent = 'Copy Mask';
+                }, 1500);
+            } else {
+                alert('No mask to copy on this frame. Create a mask first.');
+            }
+        });
+    }
+
+    if (pasteMaskBtn) {
+        pasteMaskBtn.addEventListener('click', async () => {
+            if (!hasCopiedMask || !copiedMaskDataURL) {
+                alert('No mask has been copied yet.');
+                return;
+            }
+            
+            const face = faces[currentFace];
+            
+            // Create frame data if it doesn't exist
+            if (!face.frameData[Math.floor(currentFrame)]) {
+                face.frameData[Math.floor(currentFrame)] = {
+                    ...face.frameData[0] // Copy initial data
+                };
+            }
+            
+            // Paste the copied mask
+            face.frameData[Math.floor(currentFrame)].maskDataURL = copiedMaskDataURL;
+            
+            // Create an image from the data URL for immediate display
+            const maskImage = new Image();
+            maskImage.src = copiedMaskDataURL;
+            face.frameData[Math.floor(currentFrame)].maskImage = maskImage;
+            
+            // Visual feedback
+            pasteMaskBtn.textContent = '✓ Mask Pasted';
+            setTimeout(() => {
+                pasteMaskBtn.textContent = 'Paste Mask';
+            }, 1500);
+            
+            // Update the frame markers and redraw
+            updateFrameMarkers();
+            drawFrame();
+        });
+    }
+
+    // Initialize the mask canvas
+    function initMaskCanvas() {
+        maskCanvas.width = 200;
+        maskCanvas.height = 200;
+        clearMaskCanvas();
+    }
+
+    // Clear the mask canvas
+    function clearMaskCanvas() {
+        maskCtx.clearRect(0, 0, maskCanvas.width, maskCanvas.height);
+        // Start with a transparent canvas (nothing visible)
+        maskCtx.fillStyle = 'rgba(0, 0, 0, 0)';
+        maskCtx.fillRect(0, 0, maskCanvas.width, maskCanvas.height);
+    }
+
+    // Load a mask from data URL
+    function loadMaskFromDataURL(dataURL) {
+        return new Promise((resolve) => {
+            clearMaskCanvas();
+            if (!dataURL) {
+                resolve();
+                return;
+            }
+            
+            const img = new Image();
+            img.onload = () => {
+                maskCtx.drawImage(img, 0, 0, maskCanvas.width, maskCanvas.height);
+                resolve();
+            };
+            img.src = dataURL;
+        });
+    }
+
+    // Update the mousedown event for painting
+    canvas.addEventListener('mousedown', async (e) => {
+        if (!isPainting) return;
+        
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
-        isDragging = true;
-        lastPoint = { x, y };
-
+        
         // Get current face data for coordinate transformation
         const face = faces[currentFace];
         const data = face.frameData[Math.floor(currentFrame)] || face.frameData[0];
-
+        
         // Transform coordinates relative to face center
         const dx = x - data.position.x;
         const dy = y - data.position.y;
@@ -865,28 +1287,35 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
         const scaleY = data.scale * data.scaleY;
         
-        // Calculate local coordinates
+        // Calculate local coordinates (0-200 range for the mask canvas)
         const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
         const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
-
-        if (maskPoints.length === 0 || e.shiftKey) {
-            maskPoints.push({ x: localX, y: localY, type: 'point' });
-        }
+        
+        // Start painting
+        isDrawing = true;
+        lastPoint = { x: localX, y: localY };
+        
+        // Draw a dot at the starting point
+        maskCtx.beginPath();
+        maskCtx.globalCompositeOperation = eraserMode ? 'destination-out' : 'source-over';
+        maskCtx.fillStyle = brushColor;
+        maskCtx.arc(localX, localY, brushSize/2, 0, Math.PI * 2);
+        maskCtx.fill();
         
         drawFrame();
     });
 
     canvas.addEventListener('mousemove', (e) => {
-        if (!isDrawingMask || !isDragging || !lastPoint) return;
-
+        if (!isPainting || !isDrawing) return;
+        
         const rect = canvas.getBoundingClientRect();
         const x = (e.clientX - rect.left) * (canvas.width / rect.width);
         const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-
+        
         // Get current face data for coordinate transformation
         const face = faces[currentFace];
         const data = face.frameData[Math.floor(currentFrame)] || face.frameData[0];
-
+        
         // Transform coordinates relative to face center
         const dx = x - data.position.x;
         const dy = y - data.position.y;
@@ -894,35 +1323,77 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
         const scaleY = data.scale * data.scaleY;
         
-        // Calculate local coordinates
+        // Calculate local coordinates (0-200 range for the mask canvas)
         const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
         const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
-
-        // Calculate control point
-        controlPoint = {
-            x: (lastPoint.x + x) / 2,
-            y: (lastPoint.y + y) / 2
-        };
-
-        // Add curve point with properly transformed coordinates
-        maskPoints.push({ 
-            x: localX, 
-            y: localY, 
-            type: 'curve',
-            controlX: localX,
-            controlY: localY
-        });
-
+        
+        // Draw a line from the last point to the current point
+        maskCtx.beginPath();
+        maskCtx.globalCompositeOperation = eraserMode ? 'destination-out' : 'source-over';
+        maskCtx.strokeStyle = brushColor;
+        maskCtx.lineWidth = brushSize;
+        maskCtx.lineCap = 'round';
+        maskCtx.lineJoin = 'round';
+        maskCtx.moveTo(lastPoint.x, lastPoint.y);
+        maskCtx.lineTo(localX, localY);
+        maskCtx.stroke();
+        
+        lastPoint = { x: localX, y: localY };
+        
         drawFrame();
     });
 
     canvas.addEventListener('mouseup', () => {
-        isDragging = false;
-        lastPoint = null;
-        controlPoint = null;
+        isDrawing = false;
     });
 
-    // Update the keyboard controls
+    canvas.addEventListener('mouseleave', () => {
+        isDrawing = false;
+    });
+
+    // Add instructions for the paintbrush
+    function updateInstructions() {
+        const instructionsDiv = document.querySelector('.instructions') || document.createElement('div');
+        instructionsDiv.className = 'instructions';
+        instructionsDiv.innerHTML = `
+            <h3>Paintbrush Mask Instructions:</h3>
+            <ul>
+                <li>Click and drag to paint areas you want to <strong>erase</strong></li>
+                <li>Adjust brush size with the slider</li>
+                <li>Toggle between brush (erase) and eraser (restore) modes</li>
+                <li>Click "Save Mask" when finished</li>
+                <li>Use Copy/Paste to reuse masks across frames</li>
+            </ul>
+        `;
+        instructionsDiv.style.position = 'absolute';
+        instructionsDiv.style.top = '10px';
+        instructionsDiv.style.right = '10px';
+        instructionsDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+        instructionsDiv.style.color = 'white';
+        instructionsDiv.style.padding = '10px';
+        instructionsDiv.style.borderRadius = '5px';
+        instructionsDiv.style.zIndex = '1000';
+        instructionsDiv.style.display = 'none';
+        
+        if (!document.querySelector('.instructions')) {
+            document.body.appendChild(instructionsDiv);
+        }
+        
+        // Show instructions when starting painting
+        startMaskBtn.addEventListener('click', () => {
+            instructionsDiv.style.display = 'block';
+        });
+        
+        // Hide instructions when finishing painting
+        finishMaskBtn.addEventListener('click', () => {
+            instructionsDiv.style.display = 'none';
+        });
+    }
+
+    // Call this function to update the instructions
+    updateInstructions();
+
+    // Add keyboard event listener for navigation and shortcuts
     document.addEventListener('keydown', (e) => {
         // Only trigger if we're not in an input field
         if (e.target.tagName === 'INPUT') return;
@@ -943,36 +1414,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Load default video
-    const defaultVideo = document.getElementById('defaultVideo');
-    defaultVideo.addEventListener('loadedmetadata', () => {
-        video.src = defaultVideo.src;
-        video.load();
-    });
-
-    // Load default JSON data
-    if (window.defaultJsonData) {
-        loadJsonData(window.defaultJsonData);
-    }
-
-    // Add helper function if it doesn't exist
-    function loadJsonData(data) {
-        if (data.faces) {
-            faces = data.faces;
-            // Reload images for each face
-            Object.keys(faces).forEach(faceId => {
-                const face = faces[faceId];
-                if (face.overlayImage) {
-                    const img = new Image();
-                    img.src = face.overlayImage.src || 'GERGFACE.png';
-                    face.overlayImage = img;
-                }
-            });
+    // Update the logo image loading at the top
+    const logoImage = new Image();
+    logoImage.onload = () => {
+        if (video.readyState >= 2) {
+            drawFrame();
         }
-        if (data.totalFrames) {
-            totalFrames = data.totalFrames;
-            updateTotalFramesDisplay();
-        }
-        drawFrame();
-    }
+    };
+    logoImage.src = 'xlogo2.png';  // Change to new logo file
 }); 

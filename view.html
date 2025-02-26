@@ -173,6 +173,7 @@
         
         <!-- Add video scrubber -->
         <div class="scrubber-container">
+            <div id="frameMarkers" class="frame-markers"></div>
             <input type="range" 
                    id="videoScrubber" 
                    min="0" 
@@ -194,6 +195,7 @@
             const statusDiv = document.getElementById('status');
             const offsetToggle = document.getElementById('offsetToggle');
             const ffmpegButton = document.getElementById('ffmpegButton');
+            const scrubber = document.getElementById('videoScrubber');
             video.src = '02_ChairShot.mp4';
             let frameData = {};
             let currentFrame = 0;
@@ -202,6 +204,7 @@
             let originalFrameData = {};
             let isOffsetActive = false;
             let imageButtons = new Map();
+            let maskImagesCache = null;
             
             // Add logo image loading at the top with other initializations
             const logoImage = new Image();
@@ -210,10 +213,10 @@
                     drawFrame();
                 }
             };
-            logoImage.src = 'gifcity.png';
+            logoImage.src = 'xlogo2.png';
             
             // Update JSON fetch
-            fetch('2heads.json')
+            fetch('chairShot2.json')
                 .then(response => response.json())
                 .then(data => {
                     const uploadContainer = document.querySelector('.upload-container');
@@ -336,30 +339,34 @@
                     originalFrameData = data;
                     frameData = data.faces?.face1 || {};
                     
+                    // Handle video loading
                     video.addEventListener('loadedmetadata', () => {
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
                         
-                        // Set up video scrubber
-                        const scrubber = document.getElementById('videoScrubber');
-                        scrubber.max = Math.floor(video.duration * 30);
+                        // Set up scrubber
+                        const totalFrames = Math.floor(video.duration * 30);
+                        scrubber.max = totalFrames - 1;
                         
-                        // Add scrubber event listener
+                        // Simple scrubber event handler
                         scrubber.addEventListener('input', () => {
                             currentFrame = parseInt(scrubber.value);
                             video.currentTime = currentFrame / 30;
                         });
-
-                        video.addEventListener('loadeddata', () => {
-                            video.currentTime = 0;
-                        });
+                        
+                        // Start at first frame
+                        video.currentTime = 0;
                     });
 
+                    // Update scrubber position when video time updates
                     video.addEventListener('timeupdate', () => {
                         currentFrame = Math.floor(video.currentTime * 30);
-                        // Update scrubber position
-                        const scrubber = document.getElementById('videoScrubber');
                         scrubber.value = currentFrame;
+                        drawFrame();
+                    });
+
+                    // Draw frame when video has seeked to new position
+                    video.addEventListener('seeked', () => {
                         drawFrame();
                     });
                 })
@@ -367,11 +374,6 @@
                     console.error('Error loading JSON:', error);
                     alert('Error loading overlay data');
                 });
-
-            // Add seeked event listener outside the fetch chain
-            video.addEventListener('seeked', () => {
-                drawFrame();
-            });
 
             function drawFrame() {
                 if (video.readyState >= 2) {
@@ -381,6 +383,9 @@
                     
                     // Draw all faces from the original data structure
                     if (originalFrameData.faces) {
+                        // Pre-load mask images to avoid async issues
+                        const maskImages = new Map();
+                        
                         Object.entries(originalFrameData.faces).forEach(([faceId, faceData]) => {
                             const data = getFrameData(currentFrame, faceData);
                             if (data) {
@@ -391,44 +396,80 @@
                                 ctx.rotate(data.rotation * Math.PI / 180);
                                 ctx.scale(finalScaleX, finalScaleY);
 
-                                // Create mask if it exists
-                                if (data.maskPoints && data.maskPoints.length > 0) {
-                                    ctx.beginPath();
-                                    for (let i = 0; i < data.maskPoints.length; i++) {
-                                        const point = data.maskPoints[i];
-                                        if (i === 0 || point.type === 'point') {
-                                            ctx.moveTo(point.x - 100, point.y - 100);
-                                        } else if (point.type === 'curve') {
-                                            ctx.lineTo(point.x - 100, point.y - 100);
-                                            if (point.controlX && point.controlY) {
-                                                ctx.quadraticCurveTo(
-                                                    point.controlX - 100,
-                                                    point.controlY - 100,
-                                                    point.x - 100,
-                                                    point.y - 100
-                                                );
-                                            }
-                                        }
-                                    }
-                                    ctx.closePath();
-                                    
-                                    // Create a rectangular path around the face
-                                    ctx.moveTo(-100, -100);
-                                    ctx.lineTo(100, -100);
-                                    ctx.lineTo(100, 100);
-                                    ctx.lineTo(-100, 100);
-                                    ctx.closePath();
-                                    
-                                    // Use evenodd to mask out the inner path
-                                    ctx.clip('evenodd');
-                                }
+                                // Create a temporary canvas for the face and mask
+                                const tempCanvas = document.createElement('canvas');
+                                tempCanvas.width = 200;
+                                tempCanvas.height = 200;
+                                const tempCtx = tempCanvas.getContext('2d');
 
-                                // Draw the face image
+                                // Draw the face onto the temporary canvas
                                 const imageName = data.imageName || 'Default';
                                 const imageElement = imageButtons.get(`${faceId}_${imageName}`);
                                 if (imageElement && imageElement.complete) {
-                                    ctx.drawImage(imageElement, -100, -100, 200, 200);
+                                    // Clear the temporary canvas first
+                                    tempCtx.clearRect(0, 0, 200, 200);
+                                    // Draw the face
+                                    tempCtx.drawImage(imageElement, 0, 0, 200, 200);
                                 }
+
+                                // Apply masking
+                                if (data.maskPoints && data.maskPoints.length > 0) {
+                                    // Create a path for the mask using existing code
+                                    tempCtx.beginPath();
+                                    tempCtx.rect(0, 0, 200, 200);
+                                    
+                                    tempCtx.beginPath();
+                                    const firstPoint = data.maskPoints[0];
+                                    tempCtx.moveTo(firstPoint.x, firstPoint.y);
+                                    
+                                    for (let i = 1; i < data.maskPoints.length; i++) {
+                                        const point = data.maskPoints[i];
+                                        if (point.controlPoint1 && point.controlPoint2) {
+                                            tempCtx.bezierCurveTo(
+                                                point.controlPoint1.x, point.controlPoint1.y,
+                                                point.controlPoint2.x, point.controlPoint2.y,
+                                                point.x, point.y
+                                            );
+                                        } else if (point.controlPoint1) {
+                                            tempCtx.quadraticCurveTo(
+                                                point.controlPoint1.x, point.controlPoint1.y,
+                                                point.x, point.y
+                                            );
+                                        } else {
+                                            tempCtx.lineTo(point.x, point.y);
+                                        }
+                                    }
+                                    
+                                    tempCtx.closePath();
+                                    tempCtx.clip("evenodd");
+                                } else if (data.maskDataURL) {
+                                    // Check if we've already processed this mask URL
+                                    if (!maskImagesCache) {
+                                        maskImagesCache = new Map();
+                                    }
+                                    
+                                    let maskImg = maskImagesCache.get(data.maskDataURL);
+                                    
+                                    if (!maskImg) {
+                                        maskImg = new Image();
+                                        maskImg.src = data.maskDataURL;
+                                        maskImagesCache.set(data.maskDataURL, maskImg);
+                                    }
+                                    
+                                    if (maskImg.complete) {
+                                        // Apply the mask to the temporary canvas
+                                        tempCtx.globalCompositeOperation = 'destination-out';
+                                        tempCtx.drawImage(maskImg, 0, 0, 200, 200);
+                                        tempCtx.globalCompositeOperation = 'source-over';  // Reset composite operation
+                                    } else {
+                                        maskImg.onload = () => {
+                                            requestAnimationFrame(drawFrame);
+                                        };
+                                    }
+                                }
+
+                                // Draw the masked face onto the main canvas
+                                ctx.drawImage(tempCanvas, -100, -100, 200, 200);
                                 
                                 ctx.restore();
                             }
@@ -467,8 +508,23 @@
                 
                 // Find the surrounding keyframes
                 const nextKeyframeIndex = keyframes.findIndex(kf => kf > frame);
-                if (nextKeyframeIndex === -1) return faceData[keyframes[keyframes.length - 1]];
-                if (nextKeyframeIndex === 0) return faceData[keyframes[0]];
+                
+                // If this is an exact keyframe, return that frame's data directly
+                if (keyframes.includes(frame)) {
+                    return faceData[frame];
+                }
+                
+                // Handle edge cases
+                if (nextKeyframeIndex === -1) return {
+                    ...faceData[keyframes[keyframes.length - 1]],
+                    maskPoints: [],
+                    maskDataURL: null
+                };
+                if (nextKeyframeIndex === 0) return {
+                    ...faceData[keyframes[0]],
+                    maskPoints: [],
+                    maskDataURL: null
+                };
                 
                 const prevKeyframe = keyframes[nextKeyframeIndex - 1];
                 const nextKeyframe = keyframes[nextKeyframeIndex];
@@ -480,11 +536,7 @@
                 const prevData = faceData[prevKeyframe];
                 const nextData = faceData[nextKeyframe];
                 
-                // Get mask points only if we're exactly on a keyframe that has them
-                const exactFrameData = faceData[frame];
-                const maskPoints = exactFrameData?.maskPoints || [];
-                
-                // Interpolate between the two keyframes
+                // Return interpolated data without any mask data
                 return {
                     position: {
                         x: lerp(prevData.position.x, nextData.position.x, factor),
@@ -497,8 +549,9 @@
                     xFlip: prevData.xFlip,
                     hidden: prevData.hidden,
                     imageName: prevData.imageName || 'Default',
-                    // Only include mask points if they exist for this exact frame
-                    maskPoints: maskPoints
+                    // No mask data for interpolated frames
+                    maskPoints: [],
+                    maskDataURL: null
                 };
             }
             
@@ -833,6 +886,18 @@
                     statusDiv.textContent = 'FFmpeg processing failed: ' + error.message;
                 }
             });
+
+            // Add this helper function outside of the drawFrame function
+            function applyMaskImage(ctx, maskImg) {
+                // Create a composite operation that uses the mask's alpha channel
+                ctx.globalCompositeOperation = 'destination-in';
+                
+                // Draw the mask image (the alpha channel will be used to create the mask)
+                ctx.drawImage(maskImg, -100, -100, 200, 200);
+                
+                // Reset composite operation
+                ctx.globalCompositeOperation = 'source-over';
+            }
         });
     </script>
 </body>
