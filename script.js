@@ -1,9 +1,68 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Move all variable declarations to the top
+    let currentFrame = 0;
+    let totalFrames = 100;
+    const frameRate = 30;
+    let maskPoints = [];
+    let isDrawingMask = false;
+    let isDragging = false;
+    let lastPoint = null;
+    let controlPoint = null;
+    let selectedPoint = null;
+    let isDraggingControlPoint = false;
+    let showControlPoints = true;
+    let isEditingMask = false;
+    let copiedMaskPoints = null;
+    let hasCopiedMask = false;
+    let isPainting = false;
+    let isDrawing = false;
+    let brushSize = 20;
+    let brushColor = 'rgba(255, 255, 255, 0.3)';
+    let eraserMode = false;
+    let copiedMaskDataURL = null;
+    
+    // Create logo image early
+    const logoImage = new Image();
+    logoImage.onload = () => {
+        if (video.readyState >= 2) {
+            drawFrame();
+        }
+    };
+    logoImage.src = 'xlogo2.png';
+
     // Canvas setup
     const canvas = document.getElementById('videoCanvas');
     const ctx = canvas.getContext('2d');
     const video = document.createElement('video');
     
+    // Create mask canvas early
+    const maskCanvas = document.createElement('canvas');
+    const maskCtx = maskCanvas.getContext('2d');
+    
+    // Initialize faces object before use
+    let faces = {
+        face1: {
+            overlayImage: new Image(),
+            frameData: {
+                0: {
+                    position: { x: 0, y: 0 },
+                    scale: 1,
+                    scaleX: 1,
+                    scaleY: 1,
+                    finalScale: { x: 1, y: 1 },
+                    rotation: 0,
+                    xFlip: false,
+                    imageName: 'Default'
+                }
+            },
+            imageName: 'Default',
+            color: 'rgba(255, 0, 0, 0.3)',
+            usedImageNames: new Set(['Default'])
+        }
+    };
+    let currentFace = 'face1';
+    faces.face1.overlayImage.src = 'GERGFACE.png';
+
     // Add video input handler
     const videoInput = document.getElementById('videoInput');
     videoInput.addEventListener('change', (e) => {
@@ -84,14 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.width = 1920;
     canvas.height = 1080;
 
-    let currentFrame = 0;
-    let totalFrames = 100;
-    const frameRate = 30;
-
-    // Create overlay image
-    const overlayImage = new Image();
-    overlayImage.src = 'GERGFACE.png';
-
     // Control elements
     const posX = document.getElementById('posX');
     const posY = document.getElementById('posY');
@@ -117,51 +168,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentFrameDisplay = document.getElementById('currentFrameDisplay');
     const totalFramesDisplay = document.getElementById('totalFramesDisplay');
 
-    // Add near the top with other state variables
-    let maskPoints = [];
-    let isDrawingMask = false;
-
-    // Add these variables near the top with other state variables
-    let isDragging = false;
-    let lastPoint = null;
-    let controlPoint = null;
-
-    // Add these variables near the top with other state variables
-    let selectedPoint = null;
-    let isDraggingControlPoint = false;
-    let showControlPoints = true;
-
-    // Add this variable near the top with other state variables
-    let isEditingMask = false;
-
-    // Add these variables near the top with other state variables
-    let copiedMaskPoints = null;
-    let hasCopiedMask = false;
-
     // Move the initialization of faces before any function that uses it
     // Add this near the top with other state variables
-    let faces = {
-        face1: {
-            overlayImage: new Image(),
-            frameData: {
-                0: {  // Add initial data for frame 0
-                    position: { x: 0, y: 0 },
-                    scale: 1,
-                    scaleX: 1,
-                    scaleY: 1,
-                    finalScale: { x: 1, y: 1 },
-                    rotation: 0,
-                    xFlip: false,
-                    imageName: 'Default'
-                }
-            },
-            imageName: 'Default',
-            color: 'rgba(255, 0, 0, 0.3)', // Red with 0.3 opacity
-            usedImageNames: new Set(['Default']) // Initialize with Default
-        }
+    const MAX_FACES = 5;
+    const FACE_COLORS = {
+        face1: 'rgba(255, 0, 0, 0.3)',   // Red
+        face2: 'rgba(0, 0, 255, 0.3)',   // Blue
+        face3: 'rgba(0, 255, 0, 0.3)',   // Green
+        face4: 'rgba(255, 165, 0, 0.3)', // Orange
+        face5: 'rgba(128, 0, 128, 0.3)'  // Purple
     };
-    let currentFace = 'face1';
-    faces.face1.overlayImage.src = 'GERGFACE.png';
 
     // Initialize controls with face1 data
     updateControlsFromData(faces.face1.frameData[0]);
@@ -193,16 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update the used image names for the new face
         updateUsedImageNames();
     });
-
-    // Add this near the top with other state variables
-    const MAX_FACES = 5;
-    const FACE_COLORS = {
-        face1: 'rgba(255, 0, 0, 0.3)',   // Red
-        face2: 'rgba(0, 0, 255, 0.3)',   // Blue
-        face3: 'rgba(0, 255, 0, 0.3)',   // Green
-        face4: 'rgba(255, 165, 0, 0.3)', // Orange
-        face5: 'rgba(128, 0, 128, 0.3)'  // Purple
-    };
 
     // Update the face creation code
     faceImageUpload.addEventListener('change', (e) => {
@@ -283,15 +289,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Call this after creating a new face and after loading JSON
     updateAddFaceButton();
-
-    // Add these variables near the top with other state variables
-    let isPainting = false;
-    let maskCanvas = document.createElement('canvas');
-    let maskCtx = maskCanvas.getContext('2d');
-    let brushSize = 20;
-    let brushColor = 'rgba(255, 255, 255, 0.3)'; // White for visible areas
-    let eraserMode = false;
-    let isDrawing = false; // Add this if it's missing
 
     // Function to draw the current frame
     function drawFrame() {
@@ -693,11 +690,6 @@ document.addEventListener('DOMContentLoaded', () => {
         downloadJSON(fullData, 'overlay_data.json');
     });
 
-    // Load the overlay image
-    overlayImage.onload = () => {
-        drawFrame();
-    };
-
     // Start loading the video
     video.load();
 
@@ -892,14 +884,14 @@ document.addEventListener('DOMContentLoaded', () => {
                             
                             // Draw overlay if we have data
                             const data = frameData[Math.floor(frame)];
-                            if (data && overlayImage.complete) {
+                            if (data && faces[currentFace].overlayImage.complete) {
                                 offscreenCtx.save();
                                 offscreenCtx.translate(data.position.x, data.position.y);
                                 const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
                                 const finalScaleY = data.scale * data.scaleY;
                                 offscreenCtx.rotate(data.rotation * Math.PI / 180);
                                 offscreenCtx.scale(finalScaleX, finalScaleY);
-                                offscreenCtx.drawImage(overlayImage, -100, -100, 200, 200);
+                                offscreenCtx.drawImage(faces[currentFace].overlayImage, -100, -100, 200, 200);
                                 offscreenCtx.restore();
                             }
                             
@@ -1413,13 +1405,4 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('saveSquareData').click();
         }
     });
-
-    // Update the logo image loading at the top
-    const logoImage = new Image();
-    logoImage.onload = () => {
-        if (video.readyState >= 2) {
-            drawFrame();
-        }
-    };
-    logoImage.src = 'xlogo2.png';  // Change to new logo file
 }); 

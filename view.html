@@ -150,12 +150,23 @@
         }
 
         .image-upload-button {
+            position: relative;
             transition: transform 0.2s, border-color 0.2s;
         }
 
         .image-upload-button:hover {
             transform: scale(1.05);
             border-color: #0056b3 !important;
+        }
+
+        /* Add delete button hover effect */
+        button[style*="position: absolute"] {
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        button[style*="position: absolute"]:hover {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+            transform: scale(1.05);
         }
     </style>
 </head>
@@ -196,7 +207,7 @@
             const offsetToggle = document.getElementById('offsetToggle');
             const ffmpegButton = document.getElementById('ffmpegButton');
             const scrubber = document.getElementById('videoScrubber');
-            video.src = '02_ChairShot.mp4';
+            video.src = 'NoMoreMeatball.mp4';
             let frameData = {};
             let currentFrame = 0;
             let mediaRecorder;
@@ -216,7 +227,7 @@
             logoImage.src = 'xlogo2.png';
             
             // Update JSON fetch
-            fetch('chairShot2.json')
+            fetch('meatball.json')
                 .then(response => response.json())
                 .then(data => {
                     const uploadContainer = document.querySelector('.upload-container');
@@ -264,6 +275,7 @@
                                 buttonContainer.style.flexDirection = 'column';
                                 buttonContainer.style.alignItems = 'center';
                                 buttonContainer.style.gap = '5px';
+                                buttonContainer.style.position = 'relative';
 
                                 const imgButton = document.createElement('img');
                                 imgButton.className = 'image-upload-button';
@@ -273,6 +285,14 @@
                                 imgButton.style.cursor = 'pointer';
                                 imgButton.style.border = '2px solid #007bff';
                                 imgButton.style.borderRadius = '5px';
+
+                                // Create file input first
+                                const fileInput = document.createElement('input');
+                                fileInput.type = 'file';
+                                fileInput.accept = 'image/*';
+                                fileInput.style.display = 'none';
+                                fileInput.dataset.faceId = faceId;
+                                fileInput.dataset.imageName = imageName;
 
                                 // Set default image or placeholder
                                 if (imageName === 'Default') {
@@ -287,18 +307,48 @@
                                     `);
                                 }
 
-                                const label = document.createElement('div');
-                                label.textContent = imageName;
-                                label.style.fontSize = '14px';
-                                label.style.color = '#666';
+                                // Add delete button
+                                const deleteBtn = document.createElement('button');
+                                deleteBtn.innerHTML = '×';
+                                deleteBtn.style.position = 'absolute';
+                                deleteBtn.style.top = '5px';
+                                deleteBtn.style.right = '5px';
+                                deleteBtn.style.width = '24px';
+                                deleteBtn.style.height = '24px';
+                                deleteBtn.style.borderRadius = '6px';
+                                deleteBtn.style.border = 'none';
+                                deleteBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                                deleteBtn.style.color = 'white';
+                                deleteBtn.style.cursor = 'pointer';
+                                deleteBtn.style.display = 'none';  // Always start hidden
+                                deleteBtn.style.alignItems = 'center';
+                                deleteBtn.style.justifyContent = 'center';
+                                deleteBtn.style.fontSize = '18px';
+                                deleteBtn.style.fontWeight = '500';
+                                deleteBtn.style.padding = '0';
+                                deleteBtn.style.zIndex = '1';
+                                deleteBtn.style.transition = 'all 0.2s ease';
 
-                                const fileInput = document.createElement('input');
-                                fileInput.type = 'file';
-                                fileInput.accept = 'image/*';
-                                fileInput.style.display = 'none';
-                                fileInput.dataset.faceId = faceId;
-                                fileInput.dataset.imageName = imageName;
+                                // Add delete functionality
+                                deleteBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    // Reset to placeholder image
+                                    imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="100%" height="100%" fill="#f0f0f0"/>
+                                            <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                                fill="#666" text-anchor="middle" dy=".3em">Click to Upload</text>
+                                        </svg>
+                                    `);
+                                    deleteBtn.style.display = 'none';
+                                    // Clear the file input value so it can be reused
+                                    fileInput.value = '';
+                                    // Update the imageButtons map with the placeholder
+                                    imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                    drawFrame();
+                                });
 
+                                // File input change handler
                                 fileInput.addEventListener('change', (e) => {
                                     const file = e.target.files[0];
                                     if (file) {
@@ -307,9 +357,10 @@
                                             const img = new Image();
                                             img.onload = () => {
                                                 imgButton.src = e.target.result;
+                                                deleteBtn.style.display = 'flex'; // Show delete button
                                                 imageButtons.set(`${faceId}_${imageName}`, imgButton);
-                                                drawFrame(); // First draw
-                                                requestAnimationFrame(drawFrame); // Second draw on next frame to ensure update
+                                                drawFrame();
+                                                requestAnimationFrame(drawFrame);
                                             };
                                             img.src = e.target.result;
                                         };
@@ -321,12 +372,18 @@
                                     fileInput.click();
                                 });
 
+                                const label = document.createElement('div');
+                                label.textContent = imageName;
+                                label.style.fontSize = '14px';
+                                label.style.color = '#666';
+
                                 buttonContainer.appendChild(imgButton);
+                                buttonContainer.appendChild(deleteBtn);
                                 buttonContainer.appendChild(label);
                                 buttonContainer.appendChild(fileInput);
                                 imageButtonsContainer.appendChild(buttonContainer);
 
-                                // Store the image button reference with face ID prefix
+                                // Store the image button reference
                                 imageButtons.set(`${faceId}_${imageName}`, imgButton);
                             });
 
@@ -405,11 +462,19 @@
                                 // Draw the face onto the temporary canvas
                                 const imageName = data.imageName || 'Default';
                                 const imageElement = imageButtons.get(`${faceId}_${imageName}`);
-                                if (imageElement && imageElement.complete) {
+
+                                // Check if we have a valid image, if not fall back to default
+                                let imageToUse = imageElement;
+                                if (!imageElement || imageElement.src.includes('data:image/svg+xml')) {
+                                    // If no image or it's the placeholder SVG, use the default image
+                                    imageToUse = imageButtons.get(`${faceId}_Default`);
+                                }
+
+                                if (imageToUse && imageToUse.complete) {
                                     // Clear the temporary canvas first
                                     tempCtx.clearRect(0, 0, 200, 200);
                                     // Draw the face
-                                    tempCtx.drawImage(imageElement, 0, 0, 200, 200);
+                                    tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
                                 }
 
                                 // Apply masking
@@ -479,6 +544,9 @@
                     // Draw logo if needed
                     if (logoImage.complete) {
                         const padding = 40;
+                        const logoWidth = Math.round(canvas.width * 0.15);  // 6% of video width
+                        const logoHeight = logoWidth;  // Keep aspect ratio square
+                        
                         // Set up shadow
                         ctx.save();
                         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
@@ -488,9 +556,9 @@
                         
                         ctx.drawImage(logoImage, 
                             padding,
-                            canvas.height - 320 - padding,
-                            320,
-                            320
+                            canvas.height - logoHeight - padding,
+                            logoWidth,
+                            logoHeight
                         );
                         ctx.restore();
                     }
