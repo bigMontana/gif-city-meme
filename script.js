@@ -63,51 +63,21 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentFace = 'face1';
     faces.face1.overlayImage.src = 'GERGFACE.png';
 
+    // Get template ID from URL if editing existing template
+    const urlParams = new URLSearchParams(window.location.search);
+    const templateId = urlParams.get('template');
+
+    // Load template if editing
+    if (templateId) {
+        loadTemplate(templateId);
+    }
+
     // Add video input handler
     const videoInput = document.getElementById('videoInput');
-    videoInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Create a URL for the uploaded video
-            const videoUrl = URL.createObjectURL(file);
-            
-            // Update video source
-            video.src = videoUrl;
-            
-            // Reset current frame and update video
-            currentFrame = 0;
-            
-            // Wait for video metadata to load
-            video.addEventListener('loadedmetadata', () => {
-                // Update canvas dimensions
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                
-                // Update total frames
-                totalFrames = Math.floor(video.duration * frameRate);
-                totalFramesDisplay.textContent = totalFrames;
-                
-                // Update scrubber
-                const scrubber = document.getElementById('videoScrubber');
-                scrubber.max = totalFrames - 1;
-                scrubber.value = 0;
-                
-                // Update current frame display
-                currentFrameDisplay.textContent = '0';
-                
-                // Force initial frame draw
-                video.currentTime = 0;
-                drawFrame();
-                updateFrameMarkers();
-            }, { once: true }); // Only run this once
-            
-            // Clean up the file input
-            e.target.value = '';
-        }
-    });
+    videoInput.addEventListener('change', handleVideoUpload);
 
     // Set default video if no file is selected
-    if (!video.src) {
+    if (!video.src && !templateId) {
         video.src = '02_ChairShot.mp4';
     }
 
@@ -119,25 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
         replaceImageUpload.click();
     });
 
-    replaceImageUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            // Create URL for the uploaded image
-            const imageUrl = URL.createObjectURL(file);
-            
-            // Update only face1's image
-            faces.face1.overlayImage.src = imageUrl;
-
-            // Wait for image to load before redrawing
-            faces.face1.overlayImage.onload = () => {
-                // Force redraw
-                drawFrame();
-            };
-
-            // Clean up the file input
-            e.target.value = '';
-        }
-    });
+    replaceImageUpload.addEventListener('change', handleFaceImageUpload);
 
     // Set initial dimensions (we'll update these when video loads)
     canvas.width = 1920;
@@ -193,86 +145,10 @@ document.addEventListener('DOMContentLoaded', () => {
         faceImageUpload.click();
     });
 
-    toggleFaceButton.addEventListener('click', () => {
-        const faceIds = Object.keys(faces);
-        const currentIndex = faceIds.indexOf(currentFace);
-        const nextIndex = (currentIndex + 1) % faceIds.length;
-        currentFace = faceIds[nextIndex];
-        
-        // Update button text
-        toggleFaceButton.textContent = `Face ${currentFace.replace('face', '')}`;
-        
-        // Update controls and colors
-        updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
-        updateUIColors();
-        
-        // Update the used image names for the new face
-        updateUsedImageNames();
-    });
+    toggleFaceButton.addEventListener('click', handleFaceToggle);
 
     // Update the face creation code
-    faceImageUpload.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            const faceNum = Object.keys(faces).length + 1;
-            
-            // Check if we've reached the maximum number of faces
-            if (faceNum > MAX_FACES) {
-                alert('Maximum number of faces (5) reached!');
-                e.target.value = '';
-                return;
-            }
-            
-            const faceId = `face${faceNum}`;
-            
-            // Create new face object with color from FACE_COLORS
-            faces[faceId] = {
-                overlayImage: new Image(),
-                frameData: {
-                    0: {  // Add initial data for frame 0
-                        position: { x: 0, y: 0 },
-                        scale: 1,
-                        scaleX: 1,
-                        scaleY: 1,
-                        finalScale: { x: 1, y: 1 },
-                        rotation: 0,
-                        xFlip: false,
-                        imageName: 'Default'
-                    }
-                },
-                imageName: 'Default',
-                color: FACE_COLORS[faceId],
-                usedImageNames: new Set(['Default'])
-            };
-
-            // Create URL for the uploaded image
-            const imageUrl = URL.createObjectURL(file);
-            faces[faceId].overlayImage.src = imageUrl;
-
-            // Wait for image to load before updating UI
-            faces[faceId].overlayImage.onload = () => {
-                // Switch to new face
-                currentFace = faceId;
-                toggleFaceButton.textContent = `Face ${faceNum}`;
-                
-                // Update controls with initial data
-                updateControlsFromData(faces[faceId].frameData[0]);
-                
-                // Update UI colors for new face
-                updateUIColors();
-                
-                // Update the used image names display
-                updateUsedImageNames();
-
-                // Force redraw
-                drawFrame();
-                updateFrameMarkers();
-            };
-
-            // Clean up the file input
-            e.target.value = '';
-        }
-    });
+    faceImageUpload.addEventListener('change', handleNewFaceUpload);
 
     // Update the Add Face button to show/hide based on face count
     function updateAddFaceButton() {
@@ -1280,8 +1156,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleY = data.scale * data.scaleY;
         
         // Calculate local coordinates (0-200 range for the mask canvas)
-        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
-        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
+        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX + 100;
+        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY + 100;
         
         // Start painting
         isDrawing = true;
@@ -1405,4 +1281,169 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('saveSquareData').click();
         }
     });
+
+    // Event handlers
+    async function handleVideoUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const videoUrl = URL.createObjectURL(file);
+            video.src = videoUrl;
+            
+            video.addEventListener('loadedmetadata', () => {
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                totalFrames = Math.floor(video.duration * frameRate);
+                totalFramesDisplay.textContent = totalFrames;
+                
+                const scrubber = document.getElementById('videoScrubber');
+                scrubber.max = totalFrames - 1;
+                scrubber.value = 0;
+                
+                currentFrameDisplay.textContent = '0';
+                video.currentTime = 0;
+                drawFrame();
+                updateFrameMarkers();
+            }, { once: true });
+            
+            e.target.value = '';
+        }
+    }
+
+    async function handleFaceImageUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const imageUrl = URL.createObjectURL(file);
+            faces.face1.overlayImage.src = imageUrl;
+            
+            faces.face1.overlayImage.onload = () => {
+                drawFrame();
+            };
+            
+            e.target.value = '';
+        }
+    }
+
+    function handleFaceToggle() {
+        const faceIds = Object.keys(faces);
+        const currentIndex = faceIds.indexOf(currentFace);
+        const nextIndex = (currentIndex + 1) % faceIds.length;
+        currentFace = faceIds[nextIndex];
+        
+        toggleFaceButton.textContent = `Face ${currentFace.replace('face', '')}`;
+        updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
+        updateUIColors();
+        updateUsedImageNames();
+    }
+
+    async function handleNewFaceUpload(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const faceNum = Object.keys(faces).length + 1;
+            
+            if (faceNum > MAX_FACES) {
+                alert('Maximum number of faces (5) reached!');
+                e.target.value = '';
+                return;
+            }
+            
+            const faceId = `face${faceNum}`;
+            faces[faceId] = {
+                overlayImage: new Image(),
+                frameData: {
+                    0: {
+                        position: { x: 0, y: 0 },
+                        scale: 1,
+                        scaleX: 1,
+                        scaleY: 1,
+                        finalScale: { x: 1, y: 1 },
+                        rotation: 0,
+                        xFlip: false,
+                        imageName: 'Default'
+                    }
+                },
+                imageName: 'Default',
+                color: FACE_COLORS[faceId],
+                usedImageNames: new Set(['Default'])
+            };
+            
+            const imageUrl = URL.createObjectURL(file);
+            faces[faceId].overlayImage.src = imageUrl;
+            
+            faces[faceId].overlayImage.onload = () => {
+                currentFace = faceId;
+                toggleFaceButton.textContent = `Face ${faceNum}`;
+                updateControlsFromData(faces[faceId].frameData[0]);
+                updateUIColors();
+                drawFrame();
+            };
+            
+            e.target.value = '';
+            updateAddFaceButton();
+        }
+    }
+
+    // Load template if editing
+    async function loadTemplate(templateId) {
+        const { data: template, error } = await supabase
+            .from('templates')
+            .select('*')
+            .eq('id', templateId)
+            .single();
+        
+        if (error) {
+            console.error('Error loading template:', error);
+            alert('Failed to load template');
+            return;
+        }
+        
+        // Load video
+        const videoUrl = getStorageUrl('videos', template.video_path);
+        video.src = videoUrl;
+        
+        // Load JSON data
+        const { data: jsonData } = await downloadFile('json', template.json_path);
+        const templateData = JSON.parse(await jsonData.text());
+        
+        // Update state
+        faces = templateData.faces;
+        totalFrames = templateData.totalFrames;
+        frameRate = templateData.frameRate;
+        
+        // Load face images
+        for (const faceId in faces) {
+            const face = faces[faceId];
+            face.overlayImage = new Image();
+            face.overlayImage.src = face.imagePath;
+        }
+        
+        // Update UI
+        updateUIColors();
+        updateControlsFromData(faces[currentFace].frameData[0]);
+    }
+
+    async function generateThumbnail() {
+        // Draw current frame to a new canvas
+        const thumbnailCanvas = document.createElement('canvas');
+        thumbnailCanvas.width = canvas.width;
+        thumbnailCanvas.height = canvas.height;
+        const thumbnailCtx = thumbnailCanvas.getContext('2d');
+        
+        // Draw video frame
+        thumbnailCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // Draw faces
+        for (const faceId in faces) {
+            const face = faces[faceId];
+            if (face.frameData[currentFrame]) {
+                drawFace(thumbnailCtx, face, currentFrame);
+            }
+        }
+        
+        // Convert to blob
+        return new Promise(resolve => {
+            thumbnailCanvas.toBlob(resolve, 'image/png');
+        });
+    }
+
+    // Keep existing helper functions...
 }); 

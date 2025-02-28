@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>GIF Gallery</title>
+    <!-- Add Supabase environment variables as meta tags -->
+    <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
+    <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <style>
         * {
             margin: 0;
@@ -208,93 +213,158 @@
 </head>
 <body>
     <div class="container">
-    <header class="header">
-        <a href="#" class="logo">
-            <img src="xlogo2.png" alt="GIFGRID Logo">
-            GIF CITY
-        </a>
-        <div class="buttons">
-            <button class="btn btn-primary">Upload</button>
-            <button class="btn btn-secondary">Create</button>
-            <button class="btn btn-light">Log In</button>
-        </div>
-    </header>
-
-    <div class="search-container">
-        <input type="text" class="search-input" placeholder="Search GIFs...">
-        <button class="search-btn">🔍</button>
-    </div>
-
-    <div class="tab-container">
-        <div class="tabs">
-            <div class="tab active">😊</div>
-            <div class="tab">😊😊</div>
-            <div class="tab">😊😊😊</div>
-            <div class="tab">😊😊😊😊+</div>
-        </div>
-    </div>
-
-    <div class="gallery-container">
-        <div class="gallery">
-            <!-- Column 1 -->
-            <div class="gallery-column">
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x280/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x350/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x320/222222/FFFFFF" alt="placeholder">
-                </div>
+        <header class="header">
+            <a href="#" class="logo">
+                <img src="xlogo2.png" alt="GIFGRID Logo">
+                GIF CITY
+            </a>
+            <div class="buttons" id="headerButtons">
+                <button class="btn btn-primary" id="uploadBtn" style="display: none;">Upload</button>
+                <button class="btn btn-secondary" id="createBtn" style="display: none;">Create</button>
+                <button class="btn btn-light" id="authBtn">Log In</button>
             </div>
-            
-            <!-- Column 2 -->
-            <div class="gallery-column">
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x320/222222/FFFFFF" alt="placeholder">
+        </header>
+
+        <!-- Auth Modal -->
+        <div id="authModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="loginForm">
+                    <h2>Login</h2>
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="login()">Login</button>
+                    <p>Don't have an account? <a href="#" onclick="toggleAuthForm()">Sign Up</a></p>
                 </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x250/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x400/222222/FFFFFF" alt="placeholder">
-                </div>
-            </div>
-            
-            <!-- Column 3 -->
-            <div class="gallery-column">
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x300/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x280/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x310/222222/FFFFFF" alt="placeholder">
-                </div>
-            </div>
-            
-            <!-- Column 4 -->
-            <div class="gallery-column">
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x260/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x390/222222/FFFFFF" alt="placeholder">
-                </div>
-                <div class="gallery-item">
-                    <img src="https://placehold.co/400x220/222222/FFFFFF" alt="placeholder">
+                <div id="signupForm" style="display: none;">
+                    <h2>Sign Up</h2>
+                    <input type="text" id="signupUsername" placeholder="Username" required>
+                    <input type="email" id="signupEmail" placeholder="Email" required>
+                    <input type="password" id="signupPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="signup()">Sign Up</button>
+                    <p>Already have an account? <a href="#" onclick="toggleAuthForm()">Login</a></p>
                 </div>
             </div>
         </div>
+
+        <div class="search-container">
+            <input type="text" class="search-input" placeholder="Search templates...">
+            <button class="search-btn">🔍</button>
+        </div>
+
+        <div class="tab-container">
+            <div class="tabs">
+                <div class="tab active">All</div>
+                <div class="tab">1 😁</div>
+                <div class="tab">2 🤪</div>
+                <div class="tab">3+ 😎</div>
+            </div>
+        </div>
+
+        <div class="gallery-container">
+            <div class="gallery" id="templateGallery">
+                <!-- Templates will be loaded here -->
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="#">About</a>
+            <a href="#">Terms</a>
+            <a href="#">Privacy</a>
+        </div>
     </div>
 
-    <footer class="footer">
-        <a href="#">Privacy</a>
-        <a href="#">Terms</a>
-    </footer>
-    </div>
-    <script src="app.js"></script>
+    <!-- Update script loading to use modules -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script type="module" src="supabase.js"></script>
+    <script type="module" src="app.js"></script>
+    <script type="module">
+        import { supabase } from './supabase.js';
+
+        // DOM Elements
+        const authModal = document.getElementById('authModal');
+        const closeBtn = document.querySelector('.close');
+        const authBtn = document.getElementById('authBtn');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const createBtn = document.getElementById('createBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+
+        // Auth state management
+        let currentUser = null;
+
+        // Check if user is already logged in
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                currentUser = session.user;
+                updateUIForLoggedInUser();
+            } else {
+                currentUser = null;
+                updateUIForLoggedOutUser();
+            }
+        });
+
+        // UI Updates
+        function updateUIForLoggedInUser() {
+            authBtn.textContent = 'Logout';
+            uploadBtn.style.display = 'block';
+            createBtn.style.display = 'block';
+        }
+
+        function updateUIForLoggedOutUser() {
+            authBtn.textContent = 'Login';
+            uploadBtn.style.display = 'none';
+            createBtn.style.display = 'none';
+        }
+
+        // Auth Modal Controls
+        authBtn.onclick = () => {
+            if (currentUser) {
+                supabase.auth.signOut();
+            } else {
+                authModal.style.display = 'block';
+            }
+        }
+
+        closeBtn.onclick = () => {
+            authModal.style.display = 'none';
+        }
+
+        window.onclick = (event) => {
+            if (event.target == authModal) {
+                authModal.style.display = 'none';
+            }
+        }
+
+        function toggleAuthForm() {
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+        }
+
+        window.toggleAuthForm = toggleAuthForm;
+        window.login = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const { error } = await signIn(email, password);
+            if (error) {
+                alert(error.message);
+            } else {
+                authModal.style.display = 'none';
+            }
+        };
+
+        window.signup = async () => {
+            const username = document.getElementById('signupUsername').value;
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const { error } = await signUp(email, password, username);
+            if (error) {
+                alert(error.message);
+            } else {
+                authModal.style.display = 'none';
+                alert('Check your email for verification link');
+            }
+        };
+    </script>
 </body>
 </html>
