@@ -1,0 +1,1438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
+    <title>Meme Viewer</title>
+    <!-- Add Google Fonts -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <!-- Load FFmpeg scripts with proper order and defer attributes -->
+    <script src="./ffmpeg/ffmpeg.min.js" defer></script>
+    <script defer>
+        // This ensures FFmpeg scripts are loaded in the correct order
+        window.addEventListener('DOMContentLoaded', () => {
+            // Load core scripts dynamically with correct sequence
+            const loadScript = (src, callback) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = callback;
+                document.head.appendChild(script);
+            };
+            
+            // First load core.js, then worker.js
+            loadScript('/ffmpeg/ffmpeg-core.js', () => {
+                loadScript('/ffmpeg/ffmpeg-core.worker.js', () => {
+                    console.log('FFmpeg scripts loaded in correct sequence');
+                    // Dispatch an event to notify the app
+                    document.dispatchEvent(new Event('ffmpeg-scripts-loaded'));
+                });
+            });
+        });
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        body {
+            font-family: "VT323", serif;
+            line-height: 1.6;
+            background-color: #121212;
+            color: white;
+        }
+
+        .container {
+            max-width: 1400px;
+            width: 60%;
+            margin: 0 auto;
+            padding: 0;
+            position: relative;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #121212;
+            border-bottom: 1px solid #36B2B7;
+            margin-bottom: 20px;
+        }
+
+        .logo {
+            font-size: 38px;
+            font-weight: 500;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo img {
+            margin-right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #36B2B7;
+            margin-top: 40px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+        }
+
+        #video-container {
+            position: relative;
+            transform-style: preserve-3d;
+            max-width: 100%;
+            margin: 0 auto;
+            border: 8px solid #FF69B4;  /* Hot pink border */
+            border-radius: 4px;
+        }
+
+        #memeVideo {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        #overlay {
+            position: absolute;
+            left: 0;
+            top: 0;
+            transform-origin: 50% 100%;
+            will-change: transform;
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 0, 0, 0.3);
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            overflow: hidden;
+        }
+
+        #overlayImage {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+
+        #renderCanvas {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        .status {
+            margin: 10px 0;
+            color: #666;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .scrubber-container {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        #videoScrubber {
+            width: 100%;
+            height: 20px;
+            margin: 20px 0;
+            cursor: pointer;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+        }
+
+        /* Style the slider thumb */
+        #videoScrubber::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 12px;
+            height: 28px;
+            background: #36B2B7;
+            cursor: pointer;
+            border: 2px solid white;
+            border-radius: 0;  /* Make it rectangular */
+            margin-top: -10px;  /* Center the thumb on the track */
+        }
+
+        #videoScrubber::-moz-range-thumb {
+            width: 12px;
+            height: 28px;
+            background: #36B2B7;
+            cursor: pointer;
+            border: 2px solid white;
+            border-radius: 0;  /* Make it rectangular */
+        }
+
+        /* Style the track */
+        #videoScrubber::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            background: white;  /* White background */
+            border-radius: 4px;  /* Slightly rounded corners */
+        }
+
+        #videoScrubber::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            background: white;  /* White background */
+            border-radius: 4px;  /* Slightly rounded corners */
+        }
+
+        /* Create the filled part of the track */
+        #videoScrubber {
+            background: linear-gradient(to right, 
+                #36B2B7 var(--value-percent, 0%), 
+                #FF69B4 var(--value-percent, 0%), 
+                #FF69B4 calc(var(--value-percent, 0%) + 2px), 
+                white calc(var(--value-percent, 0%) + 2px)
+            );
+            border-radius: 4px;  /* Slightly rounded corners */
+        }
+
+        .toggle-button {
+            background-color: #dc3545;
+        }
+        
+        .toggle-button.active {
+            background-color: #28a745;
+        }
+
+        /* Add styles for the new FFmpeg button */
+        .ffmpeg-button {
+            background-color: #36B2B7;  /* Change to teal */
+            margin: 20px auto;  /* Add margin and auto for centering */
+            display: block;  /* Make it block to allow margin auto to work */
+        }
+        
+        .ffmpeg-button:hover {
+            background-color: #2d9599;  /* Darker teal for hover */
+        }
+
+        .upload-container {
+            display: flex;
+            flex-wrap: nowrap;  /* Prevent wrapping */
+            gap: 20px;
+            justify-content: center;  /* Center the faces horizontally */
+            margin: 20px auto;  /* Center the container itself */
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;  /* Allow horizontal scrolling if needed */
+            scrollbar-width: thin;  /* Firefox */
+            -webkit-overflow-scrolling: touch;  /* Smooth scrolling on iOS */
+            width: 100%;  /* Ensure container takes full width */
+        }
+
+        .upload-container::-webkit-scrollbar {
+            height: 8px;  /* Height of horizontal scrollbar */
+        }
+
+        .upload-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+
+        .upload-container::-webkit-scrollbar-thumb {
+            background: #36B2B7;  /* Match the teal theme */
+            border-radius: 4px;
+        }
+
+        .face-container {
+            flex: 0 0 auto;  /* Don't grow or shrink, just use base size */
+            padding: 10px;  /* Reduced from 15px */
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+            min-width: 200px;  /* Minimum width for each face container */
+            max-width: none;  /* Remove max-width to allow full expansion */
+        }
+
+        .face-container h3 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .image-upload-button {
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .image-upload-button:hover {
+            transform: scale(1.05);
+            border-color: #0056b3 !important;
+        }
+
+        /* Add delete button hover effect */
+        button[style*="position: absolute"] {
+            transition: background-color 0.2s, transform 0.2s;
+        }
+
+        button[style*="position: absolute"]:hover {
+            background-color: rgba(0, 0, 0, 0.8) !important;
+            transform: scale(1.05);
+        }
+        
+        /* Loading spinner for FFmpeg initialization */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(0,0,0,0.1);
+            border-radius: 50%;
+            border-top-color: #007bff;
+            animation: spin 1s ease-in-out infinite;
+            margin-left: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Disabled button styles */
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .upload-file-button {
+            padding: 8px 16px;
+            font-size: 14px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .upload-file-button:hover {
+            background-color: #218838;
+        }
+
+        .file-upload-container {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="/" class="logo">
+                <img src="xlogo2.png" alt="GIFGRID Logo" crossorigin="anonymous">
+                GIF CITY
+            </a>
+        </header>
+
+        <!-- Add upload container here, before video container -->
+        <div class="upload-container"></div>
+
+        <!-- Move status div here -->
+        <div id="status" class="status"></div>
+
+        <div id="video-container">
+            <canvas id="renderCanvas"></canvas>
+        </div>
+
+        <!-- Add video scrubber -->
+        <div class="scrubber-container">
+            <div id="frameMarkers" class="frame-markers"></div>
+            <input type="range" 
+                   id="videoScrubber" 
+                   min="0" 
+                   max="0" 
+                   value="0" 
+                   step="1" 
+                   style="width: 100%; margin: 20px 0;">
+        </div>
+
+        <button id="ffmpegButton" class="ffmpeg-button" disabled>
+            Render with FFmpeg
+            <span id="ffmpegSpinner" class="loading-spinner" style="display: none;"></span>
+        </button>
+        
+        <div class="footer">
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Terms</a>
+                <a href="#">Privacy</a>
+            </div>
+            <div class="logo">
+                <img src="xlogo2.png" alt="GIFGRID Logo" crossorigin="anonymous">
+                GIF CITY
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const videoUrl = urlParams.get('video');
+            const jsonUrl = urlParams.get('json');
+            const title = urlParams.get('title');
+            const thumbnailUrl = urlParams.get('thumbnail');
+
+            // Update page title if provided
+            if (title) {
+                document.title = `${title} - Meme Viewer`;
+            }
+
+            const canvas = document.getElementById('renderCanvas');
+            const ctx = canvas.getContext('2d');
+            const video = document.createElement('video');
+            video.setAttribute('crossorigin', 'anonymous');
+            video.setAttribute('preload', 'auto');
+            video.setAttribute('playsinline', '');
+            video.crossOrigin = 'anonymous';  // Add this explicit setting
+            const statusDiv = document.getElementById('status');
+            const ffmpegButton = document.getElementById('ffmpegButton');
+            const ffmpegSpinner = document.getElementById('ffmpegSpinner');
+            const scrubber = document.getElementById('videoScrubber');
+            
+            // Validate video URL
+            if (!videoUrl) {
+                displayError('No video URL provided');
+                return;
+            }
+
+            // Function to attempt video loading with fetch first
+            const loadVideo = async () => {
+                try {
+                    // Fetch the video first with proper CORS settings
+                    const response = await fetch(videoUrl, {
+                        mode: 'cors',
+                        credentials: 'omit' // Change from 'include' to 'omit'
+                    });
+                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    // Create a blob from the response
+                    const blob = await response.blob();
+                    const blobUrl = URL.createObjectURL(blob);
+                    
+                    // Set video source to the blob URL
+                    video.src = blobUrl;
+                    
+                    video.onerror = () => {
+                        const errorMessage = video.error?.code ? 
+                            `Error loading video (code ${video.error.code}): ${video.error?.message || 'Unknown error'}` : 
+                            'Error loading video';
+                        displayError(errorMessage);
+                        console.error('Video error details:', video.error);
+                        URL.revokeObjectURL(blobUrl);
+                    };
+
+                    // Add load event handler
+                    video.onloadeddata = () => {
+                        statusDiv.textContent = 'Video loaded successfully';
+                        statusDiv.style.color = '#44ff44';
+                        // Re-enable FFmpeg button if FFmpeg is initialized
+                        if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                            ffmpegButton.disabled = false;
+                        }
+                        if (video.readyState >= 2) {
+                            canvas.width = video.videoWidth;
+                            canvas.height = video.videoHeight;
+                            drawFrame();
+                        }
+                    };
+                } catch (error) {
+                    console.error('Error fetching video:', error);
+                    displayError(`Error fetching video: ${error.message}`);
+                    
+                    // Fallback to direct video source if fetch fails
+                    video.src = videoUrl;
+                }
+            };
+
+            // Start video loading
+            loadVideo();
+
+            let frameData = {};
+            let currentFrame = 0;
+            let mediaRecorder;
+            let chunks = [];
+            let originalFrameData = {};
+            let isOffsetActive = false;
+            let imageButtons = new Map();
+            let maskImagesCache = null;
+            let audioContext = null;
+            let audioSource = null;
+            let audioDestination = null;
+            
+            // Add logo image loading at the top with other initializations
+            const logoImage = new Image();
+            logoImage.onload = () => {
+                if (video.readyState >= 2) {
+                    drawFrame();
+                }
+            };
+            logoImage.src = 'xlogo2.png';
+            
+            // Global FFmpeg state tracking
+            let ffmpegState = {
+                minLoaded: false,
+                coreLoaded: false,
+                workerLoaded: false,
+                wasmLoaded: false,
+                ffmpeg: null,
+                initAttempts: 0
+            };
+
+            // Sequential loading with proper dependencies
+            function loadFFmpegScriptsSequentially() {
+                ffmpegSpinner.style.display = 'inline-block';
+                ffmpegButton.disabled = true;
+                statusDiv.textContent = 'Starting FFmpeg initialization...';
+                
+                // Step 1: Load the main FFmpeg min script
+                const loadMinScript = () => {
+                    return new Promise((resolve, reject) => {
+                        if (ffmpegState.minLoaded) return resolve();
+                        
+                        statusDiv.textContent = 'Loading FFmpeg main script...';
+                        const script = document.createElement('script');
+                        script.src = '/ffmpeg/ffmpeg.min.js';
+                        script.onload = () => {
+                            console.log('FFmpeg min script loaded');
+                            ffmpegState.minLoaded = true;
+                            setTimeout(resolve, 500);
+                        };
+                        script.onerror = (err) => reject(new Error('Failed to load FFmpeg min script'));
+                        document.head.appendChild(script);
+                    });
+                };
+                
+                // Step 2: Pre-load the core script
+                const preloadCoreScript = () => {
+                    return new Promise((resolve, reject) => {
+                        if (ffmpegState.coreLoaded) return resolve();
+                        
+                        statusDiv.textContent = 'Pre-loading FFmpeg core script...';
+                        const script = document.createElement('script');
+                        script.src = '/ffmpeg/ffmpeg-core.js';
+                        script.onload = () => {
+                            console.log('FFmpeg core script pre-loaded');
+                            ffmpegState.coreLoaded = true;
+                            setTimeout(resolve, 500);
+                        };
+                        script.onerror = (err) => reject(new Error('Failed to pre-load FFmpeg core script'));
+                        document.head.appendChild(script);
+                    });
+                };
+                
+                // Step 3: Initialize FFmpeg
+                const initializeFFmpeg = async () => {
+                    if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                        return ffmpegState.ffmpeg;
+                    }
+                    
+                    statusDiv.textContent = 'Creating FFmpeg instance...';
+                    ffmpegState.initAttempts++;
+                    
+                    try {
+                        const ffmpeg = FFmpeg.createFFmpeg({
+                            log: true,
+                            corePath: '/ffmpeg/ffmpeg-core.js',
+                            workerPath: '/ffmpeg/ffmpeg-core.worker.js',
+                            wasmPath: '/ffmpeg/ffmpeg-core.wasm'
+                        });
+                        
+                        window.addEventListener('error', function(e) {
+                            if (e.message.includes('worker.js received unknown command undefined')) {
+                                console.log('Ignoring known FFmpeg worker warning');
+                                e.preventDefault();
+                                return true;
+                            }
+                        }, true);
+                        
+                        statusDiv.textContent = 'Loading FFmpeg WASM and Worker...';
+                        
+                        const loadPromise = ffmpeg.load();
+                        const timeoutPromise = new Promise((_, reject) => {
+                            setTimeout(() => reject(new Error('FFmpeg initialization timed out')), 30000);
+                        });
+                        
+                        await Promise.race([loadPromise, timeoutPromise]);
+                        
+                        console.log('FFmpeg fully loaded and ready!');
+                        statusDiv.textContent = 'All systems go!';
+                        ffmpegState.ffmpeg = ffmpeg;
+                        ffmpegButton.disabled = false;
+                        ffmpegSpinner.style.display = 'none';
+                        return ffmpeg;
+                    } catch (error) {
+                        console.error('FFmpeg initialization error:', error);
+                        
+                        if (ffmpegState.initAttempts >= 3) {
+                            throw new Error(`FFmpeg failed to initialize after ${ffmpegState.initAttempts} attempts: ${error.message}`);
+                        }
+                        
+                        const backoffTime = Math.pow(2, ffmpegState.initAttempts) * 1000;
+                        statusDiv.textContent = `Retrying FFmpeg initialization in ${backoffTime/1000}s...`;
+                        
+                        await new Promise(resolve => setTimeout(resolve, backoffTime));
+                        return initializeFFmpeg();
+                    }
+                };
+                
+                return loadMinScript()
+                    .then(() => preloadCoreScript())
+                    .then(() => initializeFFmpeg())
+                    .catch(error => {
+                        console.error('FFmpeg loading sequence failed:', error);
+                        statusDiv.textContent = `Failed to initialize FFmpeg: ${error.message}`;
+                        ffmpegSpinner.style.display = 'none';
+                        
+                        ffmpegButton.disabled = false;
+                        ffmpegButton.textContent = 'Retry FFmpeg Initialization';
+                        
+                        ffmpegButton.onclick = () => {
+                            ffmpegButton.textContent = 'Render with FFmpeg';
+                            ffmpegState = {
+                                minLoaded: ffmpegState.minLoaded,
+                                coreLoaded: ffmpegState.coreLoaded,
+                                workerLoaded: false,
+                                wasmLoaded: false,
+                                ffmpeg: null,
+                                initAttempts: 0
+                            };
+                            loadFFmpegScriptsSequentially();
+                        };
+                        
+                        throw error;
+                    });
+            }
+
+            // Initialize FFmpeg when page loads
+            setTimeout(() => {
+                loadFFmpegScriptsSequentially().catch(err => {
+                    console.error('Initial FFmpeg loading failed, will retry on button click:', err);
+                });
+            }, 2000);
+
+            // Update FFmpeg button click handler
+            ffmpegButton.addEventListener('click', async () => {
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderWithFFmpeg();
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderWithFFmpeg();
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                }
+            });
+            
+            // Update JSON fetch to use URL parameter
+            const jsonSource = jsonUrl;
+            if (!jsonSource) {
+                displayError('No JSON URL provided');
+                return;
+            }
+            
+            // Initialize video playback setup
+            setupVideoPlayback();
+            
+            // Attempt to fetch and process JSON data
+            fetch(jsonSource, {
+                mode: 'cors',
+                credentials: 'same-origin'
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (!data || !data.faces) {
+                        throw new Error('Invalid JSON data format: missing faces data');
+                    }
+
+                    const uploadContainer = document.querySelector('.upload-container');
+                    if (!uploadContainer) {
+                        throw new Error('Upload container element not found');
+                    }
+
+                    uploadContainer.innerHTML = ''; // Clear existing content
+                    
+                    // Process each face
+                    Object.entries(data.faces).forEach(([faceId, faceData]) => {
+                        // Create face container
+                        const faceContainer = document.createElement('div');
+                        faceContainer.className = 'face-container';
+                        faceContainer.style.padding = '15px';
+                        faceContainer.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+                        faceContainer.style.borderRadius = '8px';
+                        faceContainer.style.flex = '0 0 auto';  /* Don't allow shrinking */
+                        faceContainer.style.minWidth = '200px';
+
+                        // Add face title
+                        const faceTitle = document.createElement('h3');
+                        faceTitle.textContent = `${faceId}`;
+                        faceTitle.style.marginBottom = '10px';
+                        faceTitle.style.textAlign = 'center';  /* Center the title text */
+                        faceContainer.appendChild(faceTitle);
+
+                        // Create image buttons container for this face
+                        const imageButtonsContainer = document.createElement('div');
+                        imageButtonsContainer.style.display = 'flex';
+                        imageButtonsContainer.style.flexDirection = 'row';  /* Display images in a row */
+                        imageButtonsContainer.style.flexWrap = 'nowrap';  /* Prevent wrapping */
+                        imageButtonsContainer.style.gap = '10px';
+                        imageButtonsContainer.style.justifyContent = 'center';  /* Center items horizontally */
+
+                        // Collect unique image names for this face
+                        const uniqueImageNames = new Set(['Default']);
+                        Object.values(faceData).forEach(frame => {
+                            if (frame.imageName) {
+                                uniqueImageNames.add(frame.imageName);
+                            }
+                        });
+
+                        // Create image buttons for this face
+                        uniqueImageNames.forEach(imageName => {
+                            const buttonContainer = document.createElement('div');
+                            buttonContainer.style.display = 'flex';
+                            buttonContainer.style.flexDirection = 'column';
+                            buttonContainer.style.alignItems = 'center';
+                            buttonContainer.style.gap = '5px';
+                            buttonContainer.style.position = 'relative';
+
+                            const imgButton = document.createElement('img');
+                            imgButton.className = 'image-upload-button';
+                            imgButton.style.width = '100px';
+                            imgButton.style.height = '100px';
+                            imgButton.style.objectFit = 'cover';
+                            imgButton.style.cursor = 'pointer';
+                            imgButton.style.border = '2px solid #007bff';
+                            imgButton.style.borderRadius = '5px';
+
+                            // Create file input first
+                            const fileInput = document.createElement('input');
+                            fileInput.type = 'file';
+                            fileInput.accept = 'image/*';
+                            fileInput.style.display = 'none';
+                            fileInput.dataset.faceId = faceId;
+                            fileInput.dataset.imageName = imageName;
+
+                            // Set default image or placeholder
+                            if (imageName === 'Default') {
+                                imgButton.src = 'GERGFACE.png';
+                            } else {
+                                imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="100%" height="100%" fill="#f0f0f0"/>
+                                        <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                            fill="#666" text-anchor="middle" dy=".3em">Click to Upload</text>
+                                    </svg>
+                                `);
+                            }
+
+                            // Add delete button
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.innerHTML = '×';
+                            deleteBtn.style.position = 'absolute';
+                            deleteBtn.style.top = '5px';
+                            deleteBtn.style.right = '5px';
+                            deleteBtn.style.width = '24px';
+                            deleteBtn.style.height = '24px';
+                            deleteBtn.style.borderRadius = '6px';
+                            deleteBtn.style.border = 'none';
+                            deleteBtn.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                            deleteBtn.style.color = 'white';
+                            deleteBtn.style.cursor = 'pointer';
+                            deleteBtn.style.display = 'none';  // Always start hidden
+                            deleteBtn.style.alignItems = 'center';
+                            deleteBtn.style.justifyContent = 'center';
+                            deleteBtn.style.fontSize = '18px';
+                            deleteBtn.style.fontWeight = '500';
+                            deleteBtn.style.padding = '0';
+                            deleteBtn.style.zIndex = '1';
+                            deleteBtn.style.transition = 'all 0.2s ease';
+
+                            // Add delete functionality
+                            deleteBtn.addEventListener('click', (e) => {
+                                e.stopPropagation();
+                                // Reset to placeholder image
+                                imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                        <rect width="100%" height="100%" fill="#f0f0f0"/>
+                                        <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                            fill="#666" text-anchor="middle" dy=".3em">Click to Upload</text>
+                                    </svg>
+                                `);
+                                deleteBtn.style.display = 'none';
+                                fileInput.value = '';
+                                imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                drawFrame();
+                            });
+
+                            // File input change handler
+                            fileInput.addEventListener('change', (e) => {
+                                const file = e.target.files[0];
+                                if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (e) => {
+                                        const img = new Image();
+                                        img.onload = () => {
+                                            imgButton.src = e.target.result;
+                                            deleteBtn.style.display = 'flex';
+                                            imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                            drawFrame();
+                                            requestAnimationFrame(drawFrame);
+                                        };
+                                        img.src = e.target.result;
+                                    };
+                                    reader.readAsDataURL(file);
+                                }
+                            });
+
+                            imgButton.addEventListener('click', () => {
+                                fileInput.click();
+                            });
+
+                            const label = document.createElement('div');
+                            label.textContent = imageName;
+                            label.style.fontSize = '14px';
+                            label.style.color = '#666';
+
+                            buttonContainer.appendChild(imgButton);
+                            buttonContainer.appendChild(deleteBtn);
+                            buttonContainer.appendChild(label);
+                            buttonContainer.appendChild(fileInput);
+                            imageButtonsContainer.appendChild(buttonContainer);
+
+                            // Store the image button reference
+                            imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                        });
+
+                        faceContainer.appendChild(imageButtonsContainer);
+                        uploadContainer.appendChild(faceContainer);
+                    });
+                    
+                    // Continue with initialization
+                    originalFrameData = data;
+                    frameData = data.faces?.face1 || {};
+                    
+                    // Initial frame render
+                    drawFrame();
+                })
+                .catch(error => {
+                    console.error('Error loading JSON:', error);
+                    displayError(`Error loading overlay data: ${error.message}`);
+                });
+
+            // Function to draw the current frame of the video onto the canvas
+            function drawFrame() {
+                if (video.readyState >= 2) {
+                    // Clear the canvas
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    // Draw the video frame
+                    try {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        
+                        // Draw all faces from the original data structure
+                        if (originalFrameData.faces) {
+                            // Pre-load mask images to avoid async issues
+                            const maskImages = new Map();
+                            
+                            Object.entries(originalFrameData.faces).forEach(([faceId, faceData]) => {
+                                const data = getFrameData(currentFrame, faceData);
+                                if (data) {
+                                    ctx.save();
+                                    ctx.translate(data.position.x, data.position.y);
+                                    const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
+                                    const finalScaleY = data.scale * data.scaleY;
+                                    ctx.rotate(data.rotation * Math.PI / 180);
+                                    ctx.scale(finalScaleX, finalScaleY);
+
+                                    // Create a temporary canvas for the face and mask
+                                    const tempCanvas = document.createElement('canvas');
+                                    tempCanvas.width = 200;
+                                    tempCanvas.height = 200;
+                                    const tempCtx = tempCanvas.getContext('2d');
+
+                                    // Draw the face onto the temporary canvas
+                                    const imageName = data.imageName || 'Default';
+                                    const imageElement = imageButtons.get(`${faceId}_${imageName}`);
+
+                                    // Check if we have a valid image, if not fall back to default
+                                    let imageToUse = imageElement;
+                                    if (!imageElement || imageElement.src.includes('data:image/svg+xml')) {
+                                        // If no image or it's the placeholder SVG, use the default image
+                                        imageToUse = imageButtons.get(`${faceId}_Default`);
+                                    }
+
+                                    if (imageToUse && imageToUse.complete) {
+                                        // Clear the temporary canvas first
+                                        tempCtx.clearRect(0, 0, 200, 200);
+                                        // Draw the face
+                                        tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                    }
+
+                                    // Apply masking
+                                    if (data.maskPoints && data.maskPoints.length > 0) {
+                                        // Create a path for the mask using existing code
+                                        tempCtx.beginPath();
+                                        tempCtx.rect(0, 0, 200, 200);
+                                        
+                                        tempCtx.beginPath();
+                                        const firstPoint = data.maskPoints[0];
+                                        tempCtx.moveTo(firstPoint.x, firstPoint.y);
+                                        
+                                        for (let i = 1; i < data.maskPoints.length; i++) {
+                                            const point = data.maskPoints[i];
+                                            if (point.controlPoint1 && point.controlPoint2) {
+                                                tempCtx.bezierCurveTo(
+                                                    point.controlPoint1.x, point.controlPoint1.y,
+                                                    point.controlPoint2.x, point.controlPoint2.y,
+                                                    point.x, point.y
+                                                );
+                                            } else if (point.controlPoint1) {
+                                                tempCtx.quadraticCurveTo(
+                                                    point.controlPoint1.x, point.controlPoint1.y,
+                                                    point.x, point.y
+                                                );
+                                            } else {
+                                                tempCtx.lineTo(point.x, point.y);
+                                            }
+                                        }
+                                        
+                                        tempCtx.closePath();
+                                        tempCtx.clip("evenodd");
+                                    } else if (data.maskDataURL) {
+                                        // Check if we've already processed this mask URL
+                                        if (!maskImagesCache) {
+                                            maskImagesCache = new Map();
+                                        }
+                                        
+                                        let maskImg = maskImagesCache.get(data.maskDataURL);
+                                        
+                                        if (!maskImg) {
+                                            maskImg = new Image();
+                                            maskImg.src = data.maskDataURL;
+                                            maskImagesCache.set(data.maskDataURL, maskImg);
+                                        }
+                                        
+                                        if (maskImg.complete) {
+                                            // Apply the mask to the temporary canvas
+                                            tempCtx.globalCompositeOperation = 'destination-out';
+                                            tempCtx.drawImage(maskImg, 0, 0, 200, 200);
+                                            tempCtx.globalCompositeOperation = 'source-over';  // Reset composite operation
+                                        } else {
+                                            maskImg.onload = () => {
+                                                requestAnimationFrame(drawFrame);
+                                            };
+                                        }
+                                    }
+
+                                    // Draw the masked face onto the main canvas
+                                    ctx.drawImage(tempCanvas, -100, -100, 200, 200);
+                                    
+                                    ctx.restore();
+                                }
+                            });
+                        }
+
+                        // Draw logo if needed
+                        if (logoImage.complete) {
+                            const padding = 40;
+                            const logoWidth = Math.round(canvas.width * 0.15);  // 6% of video width
+                            const logoHeight = logoWidth;  // Keep aspect ratio square
+                            
+                            // Set up shadow
+                            ctx.save();
+                            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                            ctx.shadowBlur = 20;
+                            ctx.shadowOffsetX = 5;
+                            ctx.shadowOffsetY = 5;
+                            
+                            ctx.drawImage(logoImage, 
+                                padding,
+                                canvas.height - logoHeight - padding,
+                                logoWidth,
+                                logoHeight
+                            );
+                            ctx.restore();
+                        }
+                        
+                        // Request next frame if video is playing
+                        if (!video.paused) {
+                            requestAnimationFrame(drawFrame);
+                        }
+                    } catch (error) {
+                        console.error('Error drawing video frame:', error);
+                        displayError('Error drawing video frame');
+                    }
+                }
+            }
+            
+            // Function to handle video playback
+            function setupVideoPlayback() {
+                // Add controls container
+                const controlsContainer = document.createElement('div');
+                controlsContainer.style.display = 'flex';
+                controlsContainer.style.flexDirection = 'column';
+                controlsContainer.style.gap = '10px';
+                
+                // Add scrubber container
+                const scrubberContainer = document.createElement('div');
+                scrubberContainer.style.display = 'flex';
+                scrubberContainer.style.alignItems = 'center';
+                scrubberContainer.style.gap = '10px';
+                
+                // Add time display
+                const timeDisplay = document.createElement('span');
+                timeDisplay.style.color = 'white';
+                timeDisplay.textContent = '0:00 / 0:00';
+                
+                // Setup scrubber
+                scrubber.min = 0;
+                scrubber.max = 0;
+                scrubber.step = 1;
+                scrubber.style.flex = '1';
+                
+                scrubberContainer.appendChild(scrubber);
+                scrubberContainer.appendChild(timeDisplay);
+                controlsContainer.appendChild(scrubberContainer);
+                
+                // Insert controls into the existing scrubber container
+                const existingScrubberContainer = document.querySelector('.scrubber-container');
+                existingScrubberContainer.appendChild(controlsContainer);
+                
+                // Format time function
+                function formatTime(seconds) {
+                    const mins = Math.floor(seconds / 60);
+                    const secs = Math.floor(seconds % 60);
+                    return `${mins}:${secs.toString().padStart(2, '0')}`;
+                }
+                
+                // Update scrubber max when video metadata is loaded
+                video.addEventListener('loadedmetadata', () => {
+                    const totalFrames = Math.floor(video.duration * 30);
+                    scrubber.max = totalFrames - 1;
+                    timeDisplay.textContent = `0:00 / ${formatTime(video.duration)}`;
+                });
+                
+                // Update scrubber position during playback
+                video.addEventListener('timeupdate', () => {
+                    currentFrame = Math.floor(video.currentTime * 30);
+                    scrubber.value = currentFrame;
+                    // Update the filled part of the slider
+                    const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
+                    scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+                    drawFrame();
+                });
+                
+                // Handle scrubbing
+                scrubber.addEventListener('input', () => {
+                    currentFrame = parseInt(scrubber.value);
+                    // Update the filled part of the slider
+                    const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
+                    scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    video.currentTime = currentFrame / 30;
+                    drawFrame();
+                });
+            }
+            
+            // Function to display error message
+            const displayError = (message) => {
+                console.error(message);
+                statusDiv.textContent = message;
+                statusDiv.style.color = '#ff4444';  // Make error message red
+
+                // Disable FFmpeg button
+                ffmpegButton.disabled = true;
+                ffmpegSpinner.style.display = 'none';
+
+                // Clear and set up canvas for error message
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                
+                // Set minimum canvas size if not set
+                if (!canvas.width) canvas.width = 800;
+                if (!canvas.height) canvas.height = 600;
+                
+                // Fill background
+                ctx.fillStyle = '#121212';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
+                // Set up text style
+                ctx.fillStyle = 'white';
+                ctx.font = '24px "VT323", serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                // Write message
+                const text = "Sorry, something went wrong.";
+                const subText = "Try refreshing or going back to the homepage and trying again.";
+                
+                ctx.fillText(text, canvas.width / 2, canvas.height / 2 - 20);
+                ctx.font = '20px "VT323", serif';
+                ctx.fillText(subText, canvas.width / 2, canvas.height / 2 + 20);
+                
+                // Still try to show thumbnail as fallback if available
+                if (thumbnailUrl) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    img.onload = () => {
+                        canvas.width = img.width;
+                        canvas.height = img.height;
+                        ctx.drawImage(img, 0, 0);
+                        
+                        // Add semi-transparent overlay
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                        ctx.fillRect(0, 0, canvas.width, canvas.height);
+                        
+                        // Redraw error message
+                        ctx.fillStyle = 'white';
+                        ctx.font = '24px "VT323", serif';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(text, canvas.width / 2, canvas.height / 2 - 20);
+                        ctx.font = '20px "VT323", serif';
+                        ctx.fillText(subText, canvas.width / 2, canvas.height / 2 + 20);
+                    };
+                    img.onerror = () => {
+                        console.error('Failed to load thumbnail as fallback');
+                    };
+                    img.src = thumbnailUrl;
+                }
+            };
+
+            function getFrameData(frame, faceData) {
+                frame = Math.floor(frame);
+                
+                const keyframes = Object.keys(faceData)
+                    .map(Number)
+                    .sort((a, b) => a - b);
+                
+                // Find the surrounding keyframes
+                const nextKeyframeIndex = keyframes.findIndex(kf => kf > frame);
+                
+                // If this is an exact keyframe, return that frame's data directly
+                if (keyframes.includes(frame)) {
+                    return faceData[frame];
+                }
+                
+                // Handle edge cases
+                if (nextKeyframeIndex === -1) return {
+                    ...faceData[keyframes[keyframes.length - 1]],
+                    maskPoints: [],
+                    maskDataURL: null
+                };
+                if (nextKeyframeIndex === 0) return {
+                    ...faceData[keyframes[0]],
+                    maskPoints: [],
+                    maskDataURL: null
+                };
+                
+                const prevKeyframe = keyframes[nextKeyframeIndex - 1];
+                const nextKeyframe = keyframes[nextKeyframeIndex];
+                
+                // Calculate interpolation factor (0 to 1)
+                const factor = (frame - prevKeyframe) / (nextKeyframe - prevKeyframe);
+                
+                // Get the data for both keyframes
+                const prevData = faceData[prevKeyframe];
+                const nextData = faceData[nextKeyframe];
+                
+                // Return interpolated data without any mask data
+                return {
+                    position: {
+                        x: lerp(prevData.position.x, nextData.position.x, factor),
+                        y: lerp(prevData.position.y, nextData.position.y, factor)
+                    },
+                    scale: lerp(prevData.scale, nextData.scale, factor),
+                    scaleX: lerp(prevData.scaleX, nextData.scaleX, factor),
+                    scaleY: lerp(prevData.scaleY, nextData.scaleY, factor),
+                    rotation: lerpAngle(prevData.rotation, nextData.rotation, factor),
+                    xFlip: prevData.xFlip,
+                    hidden: prevData.hidden,
+                    imageName: prevData.imageName || 'Default',
+                    // No mask data for interpolated frames
+                    maskPoints: [],
+                    maskDataURL: null
+                };
+            }
+            
+            // Linear interpolation helper function with cubic easing
+            function lerp(start, end, factor) {
+                // Cubic easing function
+                factor = factor * factor * (3 - 2 * factor);
+                return start + (end - start) * factor;
+            }
+            
+            // Special interpolation for angles to handle wraparound
+            function lerpAngle(start, end, factor) {
+                let diff = end - start;
+                // Handle angle wraparound
+                if (diff > 180) diff -= 360;
+                if (diff < -180) diff += 360;
+                // Apply cubic easing to angle interpolation
+                factor = factor * factor * (3 - 2 * factor);
+                return start + diff * factor;
+            }
+
+            // Add play event listener for continuous frame updates
+            video.addEventListener('play', function() {
+                function step() {
+                    drawFrame();
+                    if (!video.paused && !video.ended) {
+                        requestAnimationFrame(step);
+                    }
+                }
+                requestAnimationFrame(step);
+            });
+
+            // Function to handle FFmpeg rendering
+            async function renderWithFFmpeg() {
+                const ffmpeg = ffmpegState.ffmpeg;
+                statusDiv.textContent = 'Capturing frames...';
+                
+                // Reset video to start
+                video.currentTime = 0;
+                await new Promise(resolve => video.addEventListener('seeked', resolve, { once: true }));
+                
+                const frames = [];
+                const totalFrames = Math.floor(video.duration * 30);
+                
+                // Function to capture a single frame
+                function captureFrame() {
+                    drawFrame();
+                    return new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            canvas.toBlob(blob => {
+                                frames.push(blob);
+                                resolve();
+                            }, 'image/jpeg', 0.95);
+                        });
+                    });
+                }
+
+                try {
+                    // Capture all frames with proper timing
+                    for (let i = 0; i < totalFrames; i++) {
+                        video.currentTime = i / 30;
+                        // Wait for the video to actually seek to the new time
+                        await new Promise(resolve => {
+                            const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                resolve();
+                            };
+                            video.addEventListener('seeked', onSeeked);
+                        });
+                        // Wait for the next frame to be rendered
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        await captureFrame();
+                        
+                        // Update progress
+                        statusDiv.textContent = `Capturing frames: ${Math.floor((i / totalFrames) * 100)}%`;
+                    }
+
+                    statusDiv.textContent = 'Processing frames with FFmpeg...';
+
+                    // Write frames to FFmpeg filesystem
+                    for (let i = 0; i < frames.length; i++) {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        const frameData = new Uint8Array(await frames[i].arrayBuffer());
+                        ffmpeg.FS('writeFile', frameName, frameData);
+                        
+                        if (i % 30 === 0) {
+                            console.log(`Writing frame ${i} of ${frames.length}`);
+                        }
+                    }
+
+                    // Clean up any existing audio connections more thoroughly
+                    if (audioSource) {
+                        audioSource.disconnect();
+                        audioSource = null;
+                    }
+                    if (audioContext) {
+                        await audioContext.close();
+                        audioContext = null;
+                    }
+                    
+                    // Create a completely new video element for audio extraction
+                    const tempVideo = document.createElement('video');
+                    tempVideo.crossOrigin = 'anonymous';
+                    
+                    // Fetch the video again with proper CORS settings
+                    const audioResponse = await fetch(videoUrl, {
+                        mode: 'cors',
+                        credentials: 'omit'  // Change from 'include' to 'omit'
+                    });
+                    const rawAudioBlob = await audioResponse.blob();
+                    const audioBlobUrl = URL.createObjectURL(rawAudioBlob);
+                    tempVideo.src = audioBlobUrl;
+                    tempVideo.muted = false;
+                    tempVideo.volume = 1.0;
+                    
+                    // Wait for the temp video to be ready
+                    await new Promise(resolve => {
+                        tempVideo.onloadedmetadata = resolve;
+                        tempVideo.load();
+                    });
+                    
+                    // Create new audio context and connections with the temp video
+                    audioContext = new AudioContext();
+                    audioSource = audioContext.createMediaElementSource(tempVideo);
+                    audioDestination = audioContext.createMediaStreamDestination();
+                    audioSource.connect(audioDestination);
+                    
+                    // Record audio
+                    const audioTrack = audioDestination.stream.getAudioTracks()[0];
+                    const mediaRecorder = new MediaRecorder(new MediaStream([audioTrack]));
+                    const audioChunks = [];
+                    
+                    mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                    mediaRecorder.start();
+                    
+                    // Play the temp video to extract audio
+                    tempVideo.currentTime = 0;
+                    await new Promise(resolve => {
+                        tempVideo.onended = resolve;
+                        tempVideo.play();
+                    });
+                    
+                    mediaRecorder.stop();
+                    await new Promise(resolve => mediaRecorder.onstop = resolve);
+                    
+                    // Clean up audio connections
+                    audioSource.disconnect();
+                    audioSource = null;
+                    await audioContext.close();
+                    audioContext = null;
+                    
+                    // Clean up temp video and blob URL
+                    tempVideo.pause();
+                    tempVideo.src = '';
+                    URL.revokeObjectURL(audioBlobUrl);
+                    
+                    // Process the audio data
+                    const processedAudioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioData = new Uint8Array(await processedAudioBlob.arrayBuffer());
+                    ffmpeg.FS('writeFile', 'audio.webm', audioData);
+
+                    // Update FFmpeg command to ensure proper frame handling
+                    await ffmpeg.run(
+                        // Input frames
+                        '-framerate', '30',
+                        '-pattern_type', 'sequence',
+                        '-i', 'frame%04d.jpg',
+                        // Input audio
+                        '-i', 'audio.webm',
+                        // Output options
+                        '-c:v', 'libx264',
+                        '-pix_fmt', 'yuv420p',
+                        '-preset', 'medium',
+                        '-crf', '23',
+                        '-c:a', 'aac',
+                        '-b:a', '128k',
+                        '-movflags', '+faststart',
+                        'output.mp4'
+                    );
+
+                    // Read the output file
+                    const data = ffmpeg.FS('readFile', 'output.mp4');
+
+                    // Clean up files
+                    frames.forEach((_, i) => {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        ffmpeg.FS('unlink', frameName);
+                    });
+                    ffmpeg.FS('unlink', 'audio.webm');
+                    ffmpeg.FS('unlink', 'output.mp4');
+
+                    // Create download link
+                    const blob = new Blob([data.buffer], { type: 'video/mp4' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'meme_ffmpeg.mp4';
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+
+                    statusDiv.textContent = `FFmpeg export complete! File size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+
+                } catch (error) {
+                    // Clean up audio on error
+                    if (audioSource) {
+                        audioSource.disconnect();
+                        audioSource = null;
+                    }
+                    if (audioContext) {
+                        await audioContext.close();
+                        audioContext = null;
+                    }
+                    console.error('FFmpeg processing error:', error);
+                    statusDiv.textContent = 'FFmpeg processing failed: ' + error.message;
+                }
+            }
+        });
+    </script>
+</body>
+</html>

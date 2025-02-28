@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
     <title>GIF Gallery</title>
     <!-- Add Supabase environment variables as meta tags -->
     <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
@@ -68,8 +71,9 @@
             border: none;
             font-family: "VT323", serif;
             font-weight: 500;
-            font-size: 18px;  /* Increased font size for better VT323 display */
+            font-size: 18px;
             cursor: pointer;
+            transition: background-color 0.2s ease;
         }
 
         .btn-primary {
@@ -77,9 +81,17 @@
             color: white;
         }
 
+        .btn-primary:hover {
+            background-color: #c4327f; /* Darker shade of pink */
+        }
+
         .btn-secondary {
             background-color: #36B2B7;
             color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2d989d; /* Darker shade of teal */
         }
 
         .btn-light {
@@ -87,9 +99,15 @@
             color: black;
         }
 
+        .btn-light:hover {
+            background-color: #e6e6e6; /* Slightly darker white */
+        }
+
         .search-container {
             margin: 20px;
             position: relative;
+            display: flex;
+            align-items: stretch;
         }
 
         .search-input {
@@ -98,17 +116,17 @@
             border-radius: 5px;
             border: none;
             font-size: 20px;
-            background-color: #222;
+            background-color: rgba(54, 178, 183, 0.45);
             color: white;
             font-family: "VT323", serif;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 0;
+            line-height: 1;
         }
 
         .search-btn {
-            position: absolute;
-            right: 0;
-            top: 0;
-            height: 100%;
-            padding: 0 20px;
+            padding: 15px 20px;
+            margin: 0;
             border: none;
             background-color: #DA3A98;
             color: white;
@@ -117,6 +135,15 @@
             cursor: pointer;
             font-family: "VT323", serif;
             font-size: 20px;
+            transition: background-color 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+        }
+
+        .search-btn:hover {
+            background-color: #c4327f; /* Matching the primary button hover */
         }
 
         .tab-container {
@@ -137,7 +164,12 @@
             cursor: pointer;
             border-radius: 25px;
             color: white;
-            font-size: 20px;  /* Increased font size for better VT323 display */
+            font-size: 20px;
+            transition: background-color 0.2s ease;
+        }
+
+        .tab:hover:not(.active) {
+            background-color: #2d2d2d; /* Slightly lighter than #222 */
         }
 
         .tab.active {
@@ -145,9 +177,14 @@
             color: white;
         }
 
+        .tab.active:hover {
+            background-color: #c4327f; /* Matching the primary button hover */
+        }
+
         /* New masonry gallery with exactly 4 columns */
         .gallery-container {
             padding: 0 20px;
+            min-height: calc(100vh - 250px); /* Account for header, search, tabs, and footer */
         }
         
         .gallery {
@@ -180,17 +217,27 @@
 
         .footer {
             display: flex;
-            justify-content: flex-start;
-            padding: 20px;
-            gap: 20px;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #36B2B7;
             margin-top: 40px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
         }
 
         .footer a {
             color: white;
             text-decoration: none;
-            font-size: 18px;  /* Increased font size for better VT323 display */
+            font-size: 24px;
             font-weight: 500;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
         }
 
         /* Responsive adjustments */
@@ -268,9 +315,15 @@
         </div>
 
         <div class="footer">
-            <a href="#">About</a>
-            <a href="#">Terms</a>
-            <a href="#">Privacy</a>
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Terms</a>
+                <a href="#">Privacy</a>
+            </div>
+            <div class="logo">
+                <img src="xlogo2.png" alt="GIFGRID Logo">
+                GIF CITY
+            </div>
         </div>
     </div>
 

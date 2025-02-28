@@ -74,6 +74,7 @@ async function displayTemplates(templates) {
             <img 
                 src="${thumbnailUrl}" 
                 alt="${template.title || 'Template'}"
+                crossorigin="anonymous"
                 onerror="this.onerror=null; this.src='${createPlaceholderSVG(template.title)}'"
             />
             <div class="template-info" style="padding: 10px;">
@@ -84,8 +85,28 @@ async function displayTemplates(templates) {
 
         // Add click handler if needed
         templateEl.addEventListener('click', () => {
-            console.log('Template clicked, full details:', template);
-            // Add navigation or preview functionality here
+            // Get video URL directly from template data if available, otherwise construct it
+            let videoUrl = template.video_url;
+            if (!videoUrl && template.thumbnail_url) {
+                // Try to construct video URL from thumbnail URL
+                const basePath = template.thumbnail_url.split('/thumbnail.png')[0];
+                videoUrl = `${basePath}/video.mp4`;
+            }
+            
+            // Ensure we have a valid video URL
+            if (!videoUrl) {
+                console.error('No video URL available for template');
+                return;
+            }
+
+            // Navigate to view_single.html with template data
+            const params = new URLSearchParams({
+                video: videoUrl,
+                json: template.json_url || '',
+                title: template.title || 'Untitled',
+                thumbnail: template.thumbnail_url || ''
+            });
+            window.location.href = `view_single.html?${params.toString()}`;
         });
 
         column.appendChild(templateEl);
