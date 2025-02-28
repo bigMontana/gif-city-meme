@@ -6,9 +6,12 @@
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
     <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
+    <!-- Add Supabase environment variables as meta tags -->
+    <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
+    <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs">
     <title>Meme Viewer</title>
     <!-- Add Google Fonts -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
     <!-- Load FFmpeg scripts with proper order and defer attributes -->
     <script src="./ffmpeg/ffmpeg.min.js" defer></script>
     <script defer>
@@ -69,7 +72,9 @@
 
         .logo {
             font-size: 38px;
-            font-weight: 500;
+            font-weight: 600;
+            font-family: "Work Sans", sans-serif;
+            font-style: italic;
             color: white;
             text-decoration: none;
             display: flex;
@@ -78,8 +83,7 @@
         
         .logo img {
             margin-right: 10px;
-            width: 32px;
-            height: 32px;
+            width: 44px;
             border-radius: 2px;
         }
 
@@ -300,11 +304,12 @@
         .image-upload-button {
             position: relative;
             transition: transform 0.2s, border-color 0.2s;
+            border: 2px solid #36B2B7;
         }
 
         .image-upload-button:hover {
             transform: scale(1.05);
-            border-color: #0056b3 !important;
+            border-color: #DA3A98 !important;
         }
 
         /* Add delete button hover effect */
@@ -371,7 +376,7 @@
     <div class="container">
         <header class="header">
             <a href="/" class="logo">
-                <img src="xlogo2.png" alt="GIFGRID Logo" crossorigin="anonymous">
+                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
                 GIF CITY
             </a>
         </header>
@@ -410,20 +415,40 @@
                 <a href="#">Privacy</a>
             </div>
             <div class="logo">
-                <img src="xlogo2.png" alt="GIFGRID Logo" crossorigin="anonymous">
+                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
                 GIF CITY
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            // Get URL parameters
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script type="module">
+        // Import supabase module
+        import * as supabaseModule from './src/supabase.js';
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Get URL parameters - now just the ID
             const urlParams = new URLSearchParams(window.location.search);
-            const videoUrl = urlParams.get('video');
-            const jsonUrl = urlParams.get('json');
-            const title = urlParams.get('title');
-            const thumbnailUrl = urlParams.get('thumbnail');
+            const templateId = urlParams.get('id');
+            
+            if (!templateId) {
+                displayError('No template ID provided');
+                return;
+            }
+            
+            // Fetch template data using ID
+            const template = await supabaseModule.fetchTemplateById(templateId);
+            
+            if (!template) {
+                displayError('Template not found');
+                return;
+            }
+            
+            // Extract needed data from template
+            const videoUrl = template.video_url;
+            const jsonUrl = template.json_url;
+            const title = template.title;
+            const thumbnailUrl = template.thumbnail_url;
 
             // Update page title if provided
             if (title) {
@@ -760,7 +785,6 @@
                             imgButton.style.height = '100px';
                             imgButton.style.objectFit = 'cover';
                             imgButton.style.cursor = 'pointer';
-                            imgButton.style.border = '2px solid #007bff';
                             imgButton.style.borderRadius = '5px';
 
                             // Create file input first
@@ -773,7 +797,18 @@
 
                             // Set default image or placeholder
                             if (imageName === 'Default') {
-                                imgButton.src = 'GERGFACE.png';
+                                imgButton.crossOrigin = 'anonymous';
+                                imgButton.onerror = () => {
+                                    console.error(`Failed to load default image for ${faceId}`);
+                                    imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                        <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                            <rect width="100%" height="100%" fill="#f0f0f0"/>
+                                            <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                                fill="#666" text-anchor="middle" dy=".3em">Default Image Failed</text>
+                                        </svg>
+                                    `);
+                                };
+                                imgButton.src = '/src/assets/images/GERGFACE.png';
                             } else {
                                 imgButton.src = 'data:image/svg+xml,' + encodeURIComponent(`
                                     <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
@@ -830,14 +865,24 @@
                                     const reader = new FileReader();
                                     reader.onload = (e) => {
                                         const img = new Image();
+                                        img.crossOrigin = 'anonymous';
                                         img.onload = () => {
                                             imgButton.src = e.target.result;
+                                            imgButton.crossOrigin = 'anonymous';
                                             deleteBtn.style.display = 'flex';
                                             imageButtons.set(`${faceId}_${imageName}`, imgButton);
                                             drawFrame();
                                             requestAnimationFrame(drawFrame);
                                         };
+                                        img.onerror = () => {
+                                            console.error('Failed to load uploaded image');
+                                            alert('Failed to load the uploaded image. Please try a different image.');
+                                        };
                                         img.src = e.target.result;
+                                    };
+                                    reader.onerror = () => {
+                                        console.error('Failed to read uploaded file');
+                                        alert('Failed to read the uploaded file. Please try again.');
                                     };
                                     reader.readAsDataURL(file);
                                 }
@@ -920,11 +965,29 @@
                                         imageToUse = imageButtons.get(`${faceId}_Default`);
                                     }
 
-                                    if (imageToUse && imageToUse.complete) {
-                                        // Clear the temporary canvas first
-                                        tempCtx.clearRect(0, 0, 200, 200);
-                                        // Draw the face
-                                        tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                    // Only draw if we have a valid, loaded image
+                                    if (imageToUse && imageToUse.complete && imageToUse.naturalWidth !== 0) {
+                                        try {
+                                            // Clear the temporary canvas first
+                                            tempCtx.clearRect(0, 0, 200, 200);
+                                            // Draw the face
+                                            tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                        } catch (imgError) {
+                                            console.warn(`Failed to draw image for ${faceId}_${imageName}:`, imgError);
+                                            // Try to reload the image if it's the default one
+                                            if (imageName === 'Default') {
+                                                const newImg = new Image();
+                                                newImg.crossOrigin = 'anonymous';
+                                                newImg.onload = () => {
+                                                    imageButtons.set(`${faceId}_Default`, newImg);
+                                                    requestAnimationFrame(drawFrame);
+                                                };
+                                                newImg.onerror = () => {
+                                                    console.error(`Failed to reload default image for ${faceId}`);
+                                                };
+                                                newImg.src = 'GERGFACE.png';
+                                            }
+                                        }
                                     }
 
                                     // Apply masking

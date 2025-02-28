@@ -10,7 +10,7 @@
     <!-- Add Supabase environment variables as meta tags -->
     <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
     <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
     <link rel="stylesheet" href="styles.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <style>
@@ -46,7 +46,9 @@
 
         .logo {
             font-size: 38px;  /* Increased font size for better VT323 display */
-            font-weight: 500;
+            font-weight: 600;
+            font-family: "Work Sans", sans-serif;
+            font-style: italic;
             color: white;
             text-decoration: none;
             display: flex;
@@ -55,8 +57,7 @@
         
         .logo img {
             margin-right: 10px;
-            width: 32px;
-            height: 32px;
+            width: 44px;
             border-radius: 2px;
         }
 
@@ -262,7 +263,7 @@
     <div class="container">
         <header class="header">
             <a href="#" class="logo">
-                <img src="xlogo2.png" alt="GIFGRID Logo">
+                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo">
                 GIF CITY
             </a>
             <div class="buttons" id="headerButtons">
@@ -321,7 +322,7 @@
                 <a href="#">Privacy</a>
             </div>
             <div class="logo">
-                <img src="xlogo2.png" alt="GIFGRID Logo">
+                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo">
                 GIF CITY
             </div>
         </div>
@@ -329,10 +330,10 @@
 
     <!-- Update script loading to use modules -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script type="module" src="supabase.js"></script>
-    <script type="module" src="app.js"></script>
+    <script type="module" src="/src/supabase.js"></script>
+    <script type="module" src="/src/app.js"></script>
     <script type="module">
-        import { supabase } from './supabase.js';
+        import { supabase } from './src/supabase.js';
 
         // DOM Elements
         const authModal = document.getElementById('authModal');

@@ -1,13 +1,14 @@
 {
   "name": "face-meme-maker",
-  "version": "1.0.0",
-  "description": "A web application for creating face memes with video templates",
-  "main": "script.js",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
   "scripts": {
-    "start": "http-server -c-1"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "dependencies": {
-    "@supabase/supabase-js": "^2.39.0",
-    "http-server": "^14.1.1"
+  "devDependencies": {
+    "vite": "^6.2.0"
   }
-} 
+}
