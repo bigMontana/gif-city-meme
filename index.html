@@ -3,154 +3,298 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Web Page</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>GIF Gallery</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        body {
+            background-color: #121212;
+            color: white;
+        }
+        
+        .container {
+            width: 60%;
+            max-width: 1400px; /* Adjust this value to control overall size */
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #121212;
+            border-bottom: 1px solid #36B2B7;
+        }
+
+        .logo {
+            font-size: 38px;  /* Increased font size for better VT323 display */
+            font-weight: 500;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+        }
+        
+        .logo img {
+            margin-right: 10px;
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-size: 18px;  /* Increased font size for better VT323 display */
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #DA3A98;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #36B2B7;
+            color: white;
+        }
+
+        .btn-light {
+            background-color: white;
+            color: black;
+        }
+
+        .search-container {
+            margin: 20px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 15px;
+            border-radius: 5px;
+            border: none;
+            font-size: 20px;
+            background-color: #222;
+            color: white;
+            font-family: "VT323", serif;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 0;
+            top: 0;
+            height: 100%;
+            padding: 0 20px;
+            border: none;
+            background-color: #DA3A98;
+            color: white;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+            cursor: pointer;
+            font-family: "VT323", serif;
+            font-size: 20px;
+        }
+
+        .tab-container {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .tabs {
+            display: flex;
+            background-color: #222;
+            border-radius: 30px;
+            padding: 5px;
+        }
+
+        .tab {
+            padding: 10px 30px;
+            cursor: pointer;
+            border-radius: 25px;
+            color: white;
+            font-size: 20px;  /* Increased font size for better VT323 display */
+        }
+
+        .tab.active {
+            background-color: #DA3A98;
+            color: white;
+        }
+
+        /* New masonry gallery with exactly 4 columns */
+        .gallery-container {
+            padding: 0 20px;
+        }
+        
+        .gallery {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .gallery-column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .gallery-item {
+            width: 100%;
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 0;
+            background-color: #222;
+        }
+
+        .gallery-item img {
+            width: 100%;
+            display: block;
+            height: auto;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: flex-start;
+            padding: 20px;
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-size: 18px;  /* Increased font size for better VT323 display */
+            font-weight: 500;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .gallery {
+                flex-wrap: wrap;
+            }
+            
+            .gallery-column {
+                flex: 0 0 calc(50% - 5px);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .gallery-column {
+                flex: 0 0 100%;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
-        <!-- Add video file input above video container -->
-        <div class="control-group">
-            <label>Load Video:</label>
-            <input type="file" id="videoInput" accept="video/*">
-            <!-- Add default video source -->
-            <video id="defaultVideo" style="display: none;" src="02_ChairShot.mp4"></video>
+    <header class="header">
+        <a href="#" class="logo">
+            <img src="xlogo2.png" alt="GIFGRID Logo">
+            GIF CITY
+        </a>
+        <div class="buttons">
+            <button class="btn btn-primary">Upload</button>
+            <button class="btn btn-secondary">Create</button>
+            <button class="btn btn-light">Log In</button>
         </div>
+    </header>
 
-        <!-- Add image replacement control -->
-        <div class="control-group">
-            <button id="replaceImageButton" class="excluded-from-color">Replace Default Face Image</button>
-            <input type="file" id="replaceImageUpload" accept="image/*" style="display: none;">
-            <!-- Move mask controls here -->
-            <button id="startMask">Start Mask</button>
-            <button id="finishMask" style="display: none;">Finish Mask</button>
-            <button id="clearMask" style="display: none;">Clear Mask</button>
-            <!-- Add default JSON data -->
-            <script>
-                fetch('2heads.json')
-                    .then(response => response.json())
-                    .then(data => {
-                        window.defaultJsonData = data;
-                    });
-            </script>
+    <div class="search-container">
+        <input type="text" class="search-input" placeholder="Search GIFs...">
+        <button class="search-btn">🔍</button>
+    </div>
+
+    <div class="tab-container">
+        <div class="tabs">
+            <div class="tab active">😊</div>
+            <div class="tab">😊😊</div>
+            <div class="tab">😊😊😊</div>
+            <div class="tab">😊😊😊😊+</div>
         </div>
+    </div>
 
-        <!-- Video and overlay controls -->
-        <div id="video-container">
-            <canvas id="videoCanvas" style="cursor: crosshair;"></canvas>
-        </div>
-
-        <!-- Move face controls here -->
-        <div class="face-controls control-group">
-            <button id="addFaceButton">Add New Face</button>
-            <button id="toggleFace">Face 1</button>
-            <input type="file" id="faceImageUpload" accept="image/*" style="display: none;">
-        </div>
-
-        <!-- Frame counter -->
-        <div id="frameCounter" class="frame-counter">
-            Frame: <span id="currentFrameDisplay">0</span> / <span id="totalFramesDisplay">0</span>
-        </div>
-        
-        <div class="controls">
-            <div class="control-group">
-                <label>Position X:</label>
-                <button class="fine-tune-btn" data-target="posX" data-step="-1">-</button>
-                <input type="range" id="posX" min="-1000" max="2500" value="0">
-                <button class="fine-tune-btn" data-target="posX" data-step="1">+</button>
-                <span class="value-display" id="posXValue">0</span>
-            </div>
-            <div class="control-group">
-                <label>Position Y:</label>
-                <button class="fine-tune-btn" data-target="posY" data-step="-1">-</button>
-                <input type="range" id="posY" min="-1000" max="2000" value="0">
-                <button class="fine-tune-btn" data-target="posY" data-step="1">+</button>
-                <span class="value-display" id="posYValue">0</span>
-            </div>
-            
-            <div class="control-group">
-                <label>Scale:</label>
-                <button class="fine-tune-btn" data-target="scale" data-step="-0.1">-</button>
-                <input type="range" id="scale" min="0.1" max="10" step="0.1" value="1">
-                <button class="fine-tune-btn" data-target="scale" data-step="0.1">+</button>
-                <span class="value-display" id="scaleValue">1</span>
-            </div>
-            <div class="control-group">
-                <label>Scale X:</label>
-                <button class="fine-tune-btn" data-target="scaleX" data-step="-0.1">-</button>
-                <input type="range" id="scaleX" min="0.1" max="10" step="0.1" value="1">
-                <button class="fine-tune-btn" data-target="scaleX" data-step="0.1">+</button>
-                <span class="value-display" id="scaleXValue">1</span>
-            </div>
-            <div class="control-group">
-                <label>Scale Y:</label>
-                <button class="fine-tune-btn" data-target="scaleY" data-step="-0.1">-</button>
-                <input type="range" id="scaleY" min="0.1" max="10" step="0.1" value="1">
-                <button class="fine-tune-btn" data-target="scaleY" data-step="0.1">+</button>
-                <span class="value-display" id="scaleYValue">1</span>
-            </div>
-
-            <div class="control-group">
-                <label>Rotation:</label>
-                <button class="fine-tune-btn" data-target="rotation" data-step="-1">-</button>
-                <input type="range" id="rotation" min="-180" max="180" value="0">
-                <button class="fine-tune-btn" data-target="rotation" data-step="1">+</button>
-                <span class="value-display" id="rotationValue">0</span>
-            </div>
-
-            <div class="control-group">
-                <label>Flip X:</label>
-                <input type="checkbox" id="xFlip">
-                <label style="margin-left: 20px;">Hide Face:</label>
-                <input type="checkbox" id="hideFace">
-            </div>
-
-            <div class="control-group">
-                <label>Image Name:</label>
-                <input type="text" id="imageName" placeholder="Default" value="Default">
-                <button id="setImageName">Set Image</button>
-            </div>
-
-            <div class="control-group">
-                <label>Used Images:</label>
-                <div id="usedImageNames" class="used-images">
-                    <span class="image-tag">Default</span>
+    <div class="gallery-container">
+        <div class="gallery">
+            <!-- Column 1 -->
+            <div class="gallery-column">
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x280/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x350/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x320/222222/FFFFFF" alt="placeholder">
                 </div>
             </div>
-
-            <div class="button-group">
-                <button id="prevFrame">Previous Frame</button>
-                <button id="nextFrame">Next Frame</button>
-                <button id="saveSquareData" class="face-specific-button">Save Current Face Data</button>
-                <button id="downloadJSON">Download JSON</button>
-                <input type="file" id="jsonUpload" accept=".json" style="display: none;">
-                <button id="loadJSON">Load JSON</button>
+            
+            <!-- Column 2 -->
+            <div class="gallery-column">
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x320/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x250/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x400/222222/FFFFFF" alt="placeholder">
+                </div>
             </div>
-
-            <!-- Add timeline scrubber -->
-            <div class="scrubber-container">
-                <div id="frameMarkers" class="frame-markers"></div>
-                <input type="range" 
-                        id="videoScrubber" 
-                        min="0" 
-                        max="0" 
-                        value="0" 
-                        step="1" 
-                        style="width: 100%; margin: 20px 0;">
+            
+            <!-- Column 3 -->
+            <div class="gallery-column">
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x300/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x280/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x310/222222/FFFFFF" alt="placeholder">
+                </div>
+            </div>
+            
+            <!-- Column 4 -->
+            <div class="gallery-column">
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x260/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x390/222222/FFFFFF" alt="placeholder">
+                </div>
+                <div class="gallery-item">
+                    <img src="https://placehold.co/400x220/222222/FFFFFF" alt="placeholder">
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- Update the tip box -->
-    <div class="tip-box">
-        <p><strong>Tip:</strong> Hold SHIFT while clicking +/- buttons for larger adjustments:</p>
-        <ul>
-            <li>Position X/Y: 10x larger steps</li>
-            <li>Other controls: 5x larger steps</li>
-        </ul>
+    <footer class="footer">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+    </footer>
     </div>
-
-    <script src="script.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/ffmpeg@0.10.1/dist/ffmpeg.min.js"></script>
-    <script src="https://unpkg.com/@ffmpeg/core@0.10.0/dist/ffmpeg-core.js"></script>
+    <script src="app.js"></script>
 </body>
-</html> 
+</html>
