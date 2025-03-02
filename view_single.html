@@ -79,11 +79,12 @@
             text-decoration: none;
             display: flex;
             align-items: center;
+            min-width: 240px;  /* Add minimum width to match logo size */
         }
         
         .logo img {
-            margin-right: 10px;
-            width: 44px;
+            width: 240px;
+            height: auto;
             border-radius: 2px;
         }
 
@@ -179,6 +180,8 @@
             width: 100%;
             padding: 0 10px;
             box-sizing: border-box;
+            display: none; /* Initially hide the scrubber */
+            margin-bottom: 20px; /* Add space between scrubber and video */
         }
 
         #videoScrubber {
@@ -260,56 +263,58 @@
 
         .upload-container {
             display: flex;
-            flex-wrap: nowrap;  /* Prevent wrapping */
+            flex-wrap: wrap;  /* Allow wrapping to create rows */
             gap: 20px;
             justify-content: center;  /* Center the faces horizontally */
             margin: 20px auto;  /* Center the container itself */
             padding: 20px;
             border-radius: 8px;
-            overflow-x: auto;  /* Allow horizontal scrolling if needed */
-            scrollbar-width: thin;  /* Firefox */
-            -webkit-overflow-scrolling: touch;  /* Smooth scrolling on iOS */
             width: 100%;  /* Ensure container takes full width */
         }
 
-        .upload-container::-webkit-scrollbar {
-            height: 8px;  /* Height of horizontal scrollbar */
-        }
-
-        .upload-container::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
-        }
-
-        .upload-container::-webkit-scrollbar-thumb {
-            background: #36B2B7;  /* Match the teal theme */
-            border-radius: 4px;
-        }
-
         .face-container {
-            flex: 0 0 auto;  /* Don't grow or shrink, just use base size */
-            padding: 10px;  /* Reduced from 15px */
+            flex: 0 0 calc(50% - 20px);  /* Take up half the width minus gap */
+            padding: 15px;
             background-color: rgba(255, 255, 255, 0.8);
             border-radius: 8px;
-            min-width: 200px;  /* Minimum width for each face container */
-            max-width: none;  /* Remove max-width to allow full expansion */
+            min-width: 0;  /* Allow container to shrink */
+            max-width: 300px;  /* Maximum width for each face container */
         }
 
         .face-container h3 {
             text-align: center;
-            margin-bottom: 10px;
+            margin-bottom: 15px;
             color: #333;
+            font-size: 18px;
         }
 
         .image-upload-button {
+            width: 80px;
+            height: 80px;
             position: relative;
             transition: transform 0.2s, border-color 0.2s;
             border: 2px solid #36B2B7;
+            border-radius: 5px;
+            object-fit: cover;
         }
 
         .image-upload-button:hover {
             transform: scale(1.05);
             border-color: #DA3A98 !important;
+        }
+
+        .image-buttons-container {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
         }
 
         /* Add delete button hover effect */
@@ -376,8 +381,7 @@
     <div class="container">
         <header class="header">
             <a href="/" class="logo">
-                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
-                GIFCITY
+                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo" crossorigin="anonymous">
             </a>
         </header>
 
@@ -387,11 +391,7 @@
         <!-- Move status div here -->
         <div id="status" class="status"></div>
 
-        <div id="video-container">
-            <canvas id="renderCanvas"></canvas>
-        </div>
-
-        <!-- Add video scrubber -->
+        <!-- Move scrubber container before video container -->
         <div class="scrubber-container">
             <div id="frameMarkers" class="frame-markers"></div>
             <input type="range" 
@@ -401,6 +401,10 @@
                    value="0" 
                    step="1" 
                    style="width: 100%; margin: 20px 0;">
+        </div>
+
+        <div id="video-container">
+            <canvas id="renderCanvas"></canvas>
         </div>
 
         <button id="ffmpegButton" class="ffmpeg-button" disabled>
@@ -415,8 +419,7 @@
                 <a href="#">Privacy</a>
             </div>
             <div class="logo">
-                <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
-                GIFCITY
+                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo" crossorigin="anonymous">
             </div>
         </div>
     </div>
@@ -510,6 +513,17 @@
                         if (video.readyState >= 2) {
                             canvas.width = video.videoWidth;
                             canvas.height = video.videoHeight;
+                            
+                            // Add scaling for tall videos
+                            const videoContainer = document.getElementById('video-container');
+                            if (video.videoHeight > 1080) {
+                                videoContainer.style.transform = 'scale(0.6)';
+                                videoContainer.style.transformOrigin = 'top center';
+                            } else {
+                                videoContainer.style.transform = 'none';
+                                videoContainer.style.transformOrigin = 'center center';
+                            }
+                            
                             drawFrame();
                         }
                     };
@@ -544,7 +558,7 @@
                     drawFrame();
                 }
             };
-            logoImage.src = 'xlogo2.png';
+            logoImage.src = '/src/assets/images/gifcity_logo.png';
             
             // Global FFmpeg state tracking
             let ffmpegState = {
@@ -756,11 +770,10 @@
 
                         // Create image buttons container for this face
                         const imageButtonsContainer = document.createElement('div');
+                        imageButtonsContainer.className = 'image-buttons-container';
                         imageButtonsContainer.style.display = 'flex';
-                        imageButtonsContainer.style.flexDirection = 'row';  /* Display images in a row */
-                        imageButtonsContainer.style.flexWrap = 'nowrap';  /* Prevent wrapping */
+                        imageButtonsContainer.style.justifyContent = 'center';
                         imageButtonsContainer.style.gap = '10px';
-                        imageButtonsContainer.style.justifyContent = 'center';  /* Center items horizontally */
 
                         // Collect unique image names for this face
                         const uniqueImageNames = new Set(['Default']);
@@ -773,18 +786,12 @@
                         // Create image buttons for this face
                         uniqueImageNames.forEach(imageName => {
                             const buttonContainer = document.createElement('div');
-                            buttonContainer.style.display = 'flex';
-                            buttonContainer.style.flexDirection = 'column';
-                            buttonContainer.style.alignItems = 'center';
-                            buttonContainer.style.gap = '5px';
-                            buttonContainer.style.position = 'relative';
+                            buttonContainer.className = 'button-container';
 
                             const imgButton = document.createElement('img');
                             imgButton.className = 'image-upload-button';
-                            imgButton.style.width = '100px';
-                            imgButton.style.height = '100px';
-                            imgButton.style.objectFit = 'cover';
                             imgButton.style.cursor = 'pointer';
+                            imgButton.style.objectFit = 'cover';
                             imgButton.style.borderRadius = '5px';
 
                             // Create file input first
@@ -940,7 +947,7 @@
                             
                             Object.entries(originalFrameData.faces).forEach(([faceId, faceData]) => {
                                 const data = getFrameData(currentFrame, faceData);
-                                if (data) {
+                                if (data && !data.hidden) {  // Only draw if not hidden
                                     ctx.save();
                                     ctx.translate(data.position.x, data.position.y);
                                     const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
@@ -1060,8 +1067,8 @@
                         // Draw logo if needed
                         if (logoImage.complete) {
                             const padding = 40;
-                            const logoWidth = Math.round(canvas.width * 0.15);  // 15% of video width
-                            const logoHeight = logoWidth;  // Keep aspect ratio square
+                            const logoWidth = Math.round(canvas.width * 0.25);  // 15% of video width
+                            const logoHeight = Math.round(logoWidth * (logoImage.naturalHeight / logoImage.naturalWidth));  // Calculate height to maintain aspect ratio
                             
                             // Set up shadow
                             ctx.save();
@@ -1092,17 +1099,19 @@
             
             // Function to handle video playback
             function setupVideoPlayback() {
+                const mainScrubberContainer = document.querySelector('.scrubber-container');
+                
                 // Add controls container
                 const controlsContainer = document.createElement('div');
                 controlsContainer.style.display = 'flex';
                 controlsContainer.style.flexDirection = 'column';
                 controlsContainer.style.gap = '10px';
                 
-                // Add scrubber container
-                const scrubberContainer = document.createElement('div');
-                scrubberContainer.style.display = 'flex';
-                scrubberContainer.style.alignItems = 'center';
-                scrubberContainer.style.gap = '10px';
+                // Add time controls container
+                const timeControlsContainer = document.createElement('div');
+                timeControlsContainer.style.display = 'flex';
+                timeControlsContainer.style.alignItems = 'center';
+                timeControlsContainer.style.gap = '10px';
                 
                 // Add time display
                 const timeDisplay = document.createElement('span');
@@ -1115,13 +1124,12 @@
                 scrubber.step = 1;
                 scrubber.style.flex = '1';
                 
-                scrubberContainer.appendChild(scrubber);
-                scrubberContainer.appendChild(timeDisplay);
-                controlsContainer.appendChild(scrubberContainer);
+                timeControlsContainer.appendChild(scrubber);
+                timeControlsContainer.appendChild(timeDisplay);
+                controlsContainer.appendChild(timeControlsContainer);
                 
                 // Insert controls into the existing scrubber container
-                const existingScrubberContainer = document.querySelector('.scrubber-container');
-                existingScrubberContainer.appendChild(controlsContainer);
+                mainScrubberContainer.appendChild(controlsContainer);
                 
                 // Format time function
                 function formatTime(seconds) {
@@ -1129,23 +1137,110 @@
                     const secs = Math.floor(seconds % 60);
                     return `${mins}:${secs.toString().padStart(2, '0')}`;
                 }
+
+                let seekTimeout = null;
+                let lastSeekTime = 0;
+                const SEEK_DELAY = 150; // Minimum time between seeks in milliseconds
+
+                // Function to handle seeking with error recovery
+                async function handleSeek(targetTime) {
+                    try {
+                        // Clear any pending seeks
+                        if (seekTimeout) {
+                            clearTimeout(seekTimeout);
+                        }
+
+                        // Check if we're seeking too frequently
+                        const now = Date.now();
+                        if (now - lastSeekTime < SEEK_DELAY) {
+                            // Schedule the seek for later
+                            seekTimeout = setTimeout(() => handleSeek(targetTime), SEEK_DELAY);
+                            return;
+                        }
+
+                        lastSeekTime = now;
+                        
+                        // Pause video during seek to prevent playback issues
+                        const wasPlaying = !video.paused;
+                        if (wasPlaying) {
+                            video.pause();
+                        }
+
+                        // Perform the seek
+                        video.currentTime = targetTime;
+
+                        // Wait for the seek to complete
+                        await new Promise((resolve, reject) => {
+                            const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                video.removeEventListener('error', onError);
+                                resolve();
+                            };
+                            
+                            const onError = (error) => {
+                                video.removeEventListener('seeked', onSeeked);
+                                video.removeEventListener('error', onError);
+                                reject(error);
+                            };
+
+                            video.addEventListener('seeked', onSeeked, { once: true });
+                            video.addEventListener('error', onError, { once: true });
+                        });
+
+                        // Resume playback if it was playing before
+                        if (wasPlaying) {
+                            video.play();
+                        }
+
+                        // Update frame and display
+                        drawFrame();
+                        currentFrame = Math.floor(video.currentTime * 30);
+                        timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+
+                    } catch (error) {
+                        console.warn('Seek operation failed:', error);
+                        // If seek fails, try to recover by moving to a nearby keyframe
+                        const nearbyTime = Math.max(0, targetTime - 1);
+                        if (nearbyTime !== targetTime) {
+                            console.log('Attempting recovery seek to nearby time:', nearbyTime);
+                            handleSeek(nearbyTime);
+                        }
+                    }
+                }
                 
                 // Update scrubber max when video metadata is loaded
                 video.addEventListener('loadedmetadata', () => {
                     const totalFrames = Math.floor(video.duration * 30);
                     scrubber.max = totalFrames - 1;
                     timeDisplay.textContent = `0:00 / ${formatTime(video.duration)}`;
+                    // Show scrubber container when video is loaded
+                    document.querySelector('.scrubber-container').style.display = 'block';
                 });
                 
                 // Update scrubber position during playback
                 video.addEventListener('timeupdate', () => {
-                    currentFrame = Math.floor(video.currentTime * 30);
-                    scrubber.value = currentFrame;
-                    // Update the filled part of the slider
-                    const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
-                    scrubber.style.setProperty('--value-percent', `${percent}%`);
-                    timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
-                    drawFrame();
+                    if (!scrubber.dragging) {
+                        currentFrame = Math.floor(video.currentTime * 30);
+                        scrubber.value = currentFrame;
+                        // Update the filled part of the slider
+                        const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                        timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+                        drawFrame();
+                    }
+                });
+                
+                // Track if the user is currently dragging the scrubber
+                scrubber.dragging = false;
+                
+                // Handle scrubbing start
+                scrubber.addEventListener('mousedown', () => {
+                    scrubber.dragging = true;
+                });
+                
+                // Handle scrubbing end
+                scrubber.addEventListener('mouseup', () => {
+                    scrubber.dragging = false;
                 });
                 
                 // Handle scrubbing
@@ -1154,8 +1249,7 @@
                     // Update the filled part of the slider
                     const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
                     scrubber.style.setProperty('--value-percent', `${percent}%`);
-                    video.currentTime = currentFrame / 30;
-                    drawFrame();
+                    handleSeek(currentFrame / 30);
                 });
             }
             

@@ -68,9 +68,6 @@ export async function fetchTemplateById(id) {
     }
 }
 
-// For testing purposes
-console.log(supabase);
-
 
 
 
