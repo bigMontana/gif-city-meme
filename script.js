@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Move all variable declarations to the top
     let currentFrame = 0;
-    let totalFrames = 100;
+    let totalFrames = 0;
     const frameRate = 30;
     let maskPoints = [];
     let isDrawingMask = false;
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             drawFrame();
         }
     };
-    logoImage.src = 'xlogo2.png';
+    logoImage.src = '/src/assets/images/logo_noText.png';
 
     // Canvas setup
     const canvas = document.getElementById('videoCanvas');
@@ -61,27 +61,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
     let currentFace = 'face1';
-    faces.face1.overlayImage.src = 'GERGFACE.png';
-
-    // Get template ID from URL if editing existing template
-    const urlParams = new URLSearchParams(window.location.search);
-    const templateId = urlParams.get('template');
-
-    // Load template if editing
-    if (templateId) {
-        loadTemplate(templateId);
-    }
+    faces.face1.overlayImage.src = '/src/assets/images/GERGFACE.png';
 
     // Add video input handler
     const videoInput = document.getElementById('videoInput');
     videoInput.addEventListener('change', handleVideoUpload);
 
-    // Set default video if no file is selected
-    if (!video.src && !templateId) {
-        video.src = '02_ChairShot.mp4';
-    }
-
-    // Add image replacement functionality for default face - Move this up near the start
+    // Add image replacement functionality for default face
     const replaceImageButton = document.getElementById('replaceImageButton');
     const replaceImageUpload = document.getElementById('replaceImageUpload');
 
@@ -91,7 +77,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     replaceImageUpload.addEventListener('change', handleFaceImageUpload);
 
-    // Set initial dimensions (we'll update these when video loads)
+    // Set initial dimensions
     canvas.width = 1920;
     canvas.height = 1080;
 
@@ -203,16 +189,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 ctx.rotate(data.rotation * Math.PI / 180);
                 ctx.scale(finalScaleX, finalScaleY);
+
+                // Calculate face size based on video width
+                const faceSize = Math.round(canvas.width * 0.104); // 10.4% of video width
+                const halfFaceSize = faceSize / 2;
                 
                 // Draw colored square background
                 ctx.fillStyle = face.color;
-                ctx.fillRect(-100, -100, 200, 200);
+                ctx.fillRect(-halfFaceSize, -halfFaceSize, faceSize, faceSize);
                 
                 // Set global alpha to 0.5 before drawing the face image
                 ctx.globalAlpha = 0.5;
                 
                 // Draw the overlay image
-                ctx.drawImage(face.overlayImage, -100, -100, 200, 200);
+                ctx.drawImage(face.overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
                 
                 // Reset global alpha back to 1.0 for other drawings
                 ctx.globalAlpha = 1.0;
@@ -254,9 +244,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Draw logo if needed
         if (logoImage.complete) {
-            const padding = 40;
-            const logoWidth = 256;  // 20% smaller than 320
-            const logoHeight = 256; // 20% smaller than 320
+            const logoWidth = Math.round(canvas.width * 0.12);  // 12% of video width
+            const padding = Math.round(canvas.width * 0.02); // 2% of video width for padding
+            const logoHeight = logoWidth * (logoImage.naturalHeight / logoImage.naturalWidth);
             
             // Set up shadow
             ctx.save();
@@ -266,8 +256,8 @@ document.addEventListener('DOMContentLoaded', () => {
             ctx.shadowOffsetY = 5;
             
             ctx.drawImage(logoImage, 
-                padding,
-                canvas.height - logoHeight - padding,
+                padding, // Left padding
+                canvas.height - logoHeight - padding, // Bottom padding
                 logoWidth,
                 logoHeight
             );
@@ -650,7 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     color: FACE_COLORS[faceId],
                     usedImageNames: new Set(['Default'])
                 };
-                acc[faceId].overlayImage.src = 'GERGFACE.png';
+                acc[faceId].overlayImage.src = '/src/assets/images/GERGFACE.png';
                 
                 // Collect all unique image names from frame data
                 Object.values(acc[faceId].frameData).forEach(frame => {
@@ -767,7 +757,12 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const finalScaleY = data.scale * data.scaleY;
                                 offscreenCtx.rotate(data.rotation * Math.PI / 180);
                                 offscreenCtx.scale(finalScaleX, finalScaleY);
-                                offscreenCtx.drawImage(faces[currentFace].overlayImage, -100, -100, 200, 200);
+                                
+                                // Calculate face size based on video width
+                                const faceSize = Math.round(canvas.width * 0.104); // 10.4% of video width
+                                const halfFaceSize = faceSize / 2;
+                                
+                                offscreenCtx.drawImage(faces[currentFace].overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
                                 offscreenCtx.restore();
                             }
                             
@@ -1156,8 +1151,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleY = data.scale * data.scaleY;
         
         // Calculate local coordinates (0-200 range for the mask canvas)
-        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX + 100;
-        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY + 100;
+        const localX = (((dx * Math.cos(angle)) - (dy * Math.sin(angle))) / scaleX) + 100;
+        const localY = (((dx * Math.sin(angle)) + (dy * Math.cos(angle))) / scaleY) + 100;
         
         // Start painting
         isDrawing = true;
@@ -1192,8 +1187,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const scaleY = data.scale * data.scaleY;
         
         // Calculate local coordinates (0-200 range for the mask canvas)
-        const localX = ((dx * Math.cos(angle) - dy * Math.sin(angle)) / scaleX) + 100;
-        const localY = ((dx * Math.sin(angle) + dy * Math.cos(angle)) / scaleY) + 100;
+        const localX = (((dx * Math.cos(angle)) - (dy * Math.sin(angle))) / scaleX) + 100;
+        const localY = (((dx * Math.sin(angle)) + (dy * Math.cos(angle))) / scaleY) + 100;
         
         // Draw a line from the last point to the current point
         maskCtx.beginPath();

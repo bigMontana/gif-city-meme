@@ -377,7 +377,7 @@
         <header class="header">
             <a href="/" class="logo">
                 <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
-                GIF CITY
+                GIFCITY
             </a>
         </header>
 
@@ -416,7 +416,7 @@
             </div>
             <div class="logo">
                 <img src="/src/assets/images/logo_noText.png" alt="GIF CITY Logo" crossorigin="anonymous">
-                GIF CITY
+                GIFCITY
             </div>
         </div>
     </div>
@@ -950,8 +950,10 @@
 
                                     // Create a temporary canvas for the face and mask
                                     const tempCanvas = document.createElement('canvas');
-                                    tempCanvas.width = 200;
-                                    tempCanvas.height = 200;
+                                    // Calculate face size based on video width, matching editor.html
+                                    const faceSize = Math.round(canvas.width * 0.104); // 10.4% of video width
+                                    tempCanvas.width = faceSize;
+                                    tempCanvas.height = faceSize;
                                     const tempCtx = tempCanvas.getContext('2d');
 
                                     // Draw the face onto the temporary canvas
@@ -969,9 +971,9 @@
                                     if (imageToUse && imageToUse.complete && imageToUse.naturalWidth !== 0) {
                                         try {
                                             // Clear the temporary canvas first
-                                            tempCtx.clearRect(0, 0, 200, 200);
+                                            tempCtx.clearRect(0, 0, faceSize, faceSize);
                                             // Draw the face
-                                            tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                            tempCtx.drawImage(imageToUse, 0, 0, faceSize, faceSize);
                                         } catch (imgError) {
                                             console.warn(`Failed to draw image for ${faceId}_${imageName}:`, imgError);
                                             // Try to reload the image if it's the default one
@@ -994,7 +996,7 @@
                                     if (data.maskPoints && data.maskPoints.length > 0) {
                                         // Create a path for the mask using existing code
                                         tempCtx.beginPath();
-                                        tempCtx.rect(0, 0, 200, 200);
+                                        tempCtx.rect(0, 0, faceSize, faceSize);
                                         
                                         tempCtx.beginPath();
                                         const firstPoint = data.maskPoints[0];
@@ -1037,7 +1039,7 @@
                                         if (maskImg.complete) {
                                             // Apply the mask to the temporary canvas
                                             tempCtx.globalCompositeOperation = 'destination-out';
-                                            tempCtx.drawImage(maskImg, 0, 0, 200, 200);
+                                            tempCtx.drawImage(maskImg, 0, 0, faceSize, faceSize);
                                             tempCtx.globalCompositeOperation = 'source-over';  // Reset composite operation
                                         } else {
                                             maskImg.onload = () => {
@@ -1047,7 +1049,8 @@
                                     }
 
                                     // Draw the masked face onto the main canvas
-                                    ctx.drawImage(tempCanvas, -100, -100, 200, 200);
+                                    const halfFaceSize = faceSize / 2;
+                                    ctx.drawImage(tempCanvas, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
                                     
                                     ctx.restore();
                                 }
@@ -1057,7 +1060,7 @@
                         // Draw logo if needed
                         if (logoImage.complete) {
                             const padding = 40;
-                            const logoWidth = Math.round(canvas.width * 0.15);  // 6% of video width
+                            const logoWidth = Math.round(canvas.width * 0.15);  // 15% of video width
                             const logoHeight = logoWidth;  // Keep aspect ratio square
                             
                             // Set up shadow
