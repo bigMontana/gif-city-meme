@@ -13,6 +13,9 @@
     <!-- Add Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
     <!-- Load FFmpeg scripts with proper order and defer attributes -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script type="module" src="/src/supabase.js"></script>
+    <script type="module" src="/src/auth.js"></script>
     <script src="./ffmpeg/ffmpeg.min.js" defer></script>
     <script defer>
         // This ensures FFmpeg scripts are loaded in the correct order
@@ -86,6 +89,128 @@
             width: 240px;
             height: auto;
             border-radius: 2px;
+        }
+
+        /* Add styles for auth buttons */
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: #DA3A98;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #c4327f; /* Darker shade of pink */
+        }
+
+        .btn-secondary {
+            background-color: #36B2B7;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2d989d; /* Darker shade of teal */
+        }
+
+        .btn-light {
+            background-color: white;
+            color: black;
+        }
+
+        .btn-light:hover {
+            background-color: #e6e6e6; /* Slightly darker white */
+        }
+
+        /* Add modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+        }
+
+        .modal-content {
+            background-color: #222;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 10px;
+            width: 80%;
+            max-width: 400px;
+            color: white;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: white;
+            text-decoration: none;
+        }
+
+        .modal h2 {
+            margin-bottom: 20px;
+            color: white;
+            font-family: "VT323", serif;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            background-color: #333;
+            border: 1px solid #444;
+            color: white;
+            border-radius: 5px;
+            font-family: "VT323", serif;
+            font-size: 18px;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: #36B2B7;
+        }
+
+        .modal p {
+            margin-top: 15px;
+            text-align: center;
+            color: #ccc;
+        }
+
+        .modal a {
+            color: #36B2B7;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .modal a:hover {
+            color: #DA3A98;
         }
 
         .footer {
@@ -315,6 +440,7 @@
             flex-direction: column;
             align-items: center;
             gap: 5px;
+            position: relative; /* This creates a positioning context */
         }
 
         /* Add delete button hover effect */
@@ -375,6 +501,90 @@
             background: rgba(255, 255, 255, 0.8);
             border-radius: 8px;
         }
+
+        /* Add styles for the face selection modal */
+        .face-selection-modal {
+            position: absolute;
+            background-color: #222;
+            border: 1px solid #36B2B7;
+            border-radius: 8px;
+            padding: 12px;
+            z-index: 999;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            max-width: 300px;
+        }
+
+        .face-selection-modal h3 {
+            margin: 0 0 10px 0;
+            color: white;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        .saved-faces-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 5px;
+        }
+
+        .saved-face-button {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #36B2B7;
+            border-radius: 5px;
+            cursor: pointer;
+            object-fit: cover;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .saved-face-button:hover {
+            transform: scale(1.05);
+            border-color: #DA3A98;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .modal-upload-button {
+            padding: 8px 16px;
+            background-color: #36B2B7;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            font-size: 14px;
+        }
+
+        .modal-upload-button:hover {
+            background-color: #DA3A98;
+        }
+
+        .modal-close-button {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 20px;
+            height: 20px;
+            border: none;
+            background-color: transparent;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body>
@@ -383,7 +593,33 @@
             <a href="/" class="logo">
                 <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo" crossorigin="anonymous">
             </a>
+            <div class="buttons" id="headerButtons">
+                <button class="btn btn-secondary" id="profileBtn" style="display: none;">Profile</button>
+                <button class="btn btn-light" id="authBtn">Log In</button>
+            </div>
         </header>
+
+        <!-- Auth Modal -->
+        <div id="authModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="loginForm">
+                    <h2>Login</h2>
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="login()">Login</button>
+                    <p>Don't have an account? <a href="#" onclick="toggleAuthForm()">Sign Up</a></p>
+                </div>
+                <div id="signupForm" style="display: none;">
+                    <h2>Sign Up</h2>
+                    <input type="text" id="signupUsername" placeholder="Username" required>
+                    <input type="email" id="signupEmail" placeholder="Email" required>
+                    <input type="password" id="signupPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="signup()">Sign Up</button>
+                    <p>Already have an account? <a href="#" onclick="toggleAuthForm()">Login</a></p>
+                </div>
+            </div>
+        </div>
 
         <!-- Add upload container here, before video container -->
         <div class="upload-container"></div>
@@ -408,7 +644,7 @@
         </div>
 
         <button id="ffmpegButton" class="ffmpeg-button" disabled>
-            Render with FFmpeg
+            Render MP4 1080p
             <span id="ffmpegSpinner" class="loading-spinner" style="display: none;"></span>
         </button>
         
@@ -679,7 +915,7 @@
                         ffmpegButton.textContent = 'Retry FFmpeg Initialization';
                         
                         ffmpegButton.onclick = () => {
-                            ffmpegButton.textContent = 'Render with FFmpeg';
+                            ffmpegButton.textContent = 'Render MP4 1080p';
                             ffmpegState = {
                                 minLoaded: ffmpegState.minLoaded,
                                 coreLoaded: ffmpegState.coreLoaded,
@@ -895,8 +1131,198 @@
                                 }
                             });
 
-                            imgButton.addEventListener('click', () => {
-                                fileInput.click();
+                            imgButton.addEventListener('click', (e) => {
+                                // If not logged in, just act like the default behavior
+                                if (!window.isUserLoggedIn()) {
+                                    fileInput.click();
+                                    return;
+                                }
+
+                                // Prevent default behavior
+                                e.stopPropagation();
+                                
+                                // First, close any existing face selection modals
+                                const existingModals = document.querySelectorAll('.face-selection-modal');
+                                existingModals.forEach(existingModal => {
+                                    if (existingModal.parentNode) {
+                                        existingModal.parentNode.removeChild(existingModal);
+                                    }
+                                });
+                                
+                                // Get click coordinates for positioning the modal
+                                const rect = imgButton.getBoundingClientRect();
+                                const clickX = rect.left;
+                                const clickY = rect.bottom + window.scrollY;
+
+                                // Create the modal
+                                const modal = document.createElement('div');
+                                modal.className = 'face-selection-modal';
+                                modal.style.left = `${clickX}px`;
+                                modal.style.top = `${clickY}px`;
+
+                                // Add close button
+                                const closeButton = document.createElement('button');
+                                closeButton.className = 'modal-close-button';
+                                closeButton.innerHTML = '×';
+                                closeButton.addEventListener('click', () => {
+                                    document.body.removeChild(modal);
+                                });
+
+                                // Add title
+                                const title = document.createElement('h3');
+                                title.textContent = 'Select Face';
+
+                                // Container for saved faces
+                                const savedFacesContainer = document.createElement('div');
+                                savedFacesContainer.className = 'saved-faces-container';
+
+                                // Loading message
+                                const loadingMessage = document.createElement('div');
+                                loadingMessage.textContent = 'Loading saved faces...';
+                                loadingMessage.style.color = 'white';
+                                loadingMessage.style.textAlign = 'center';
+                                savedFacesContainer.appendChild(loadingMessage);
+
+                                // Footer with upload new button
+                                const footer = document.createElement('div');
+                                footer.className = 'modal-footer';
+                                
+                                const uploadButton = document.createElement('button');
+                                uploadButton.className = 'modal-upload-button';
+                                uploadButton.textContent = 'Upload New Face';
+                                uploadButton.addEventListener('click', () => {
+                                    document.body.removeChild(modal);
+                                    fileInput.click();
+                                });
+                                
+                                footer.appendChild(uploadButton);
+
+                                // Assemble modal
+                                modal.appendChild(closeButton);
+                                modal.appendChild(title);
+                                modal.appendChild(savedFacesContainer);
+                                modal.appendChild(footer);
+
+                                // Add to DOM
+                                document.body.appendChild(modal);
+
+                                // Fetch user's saved faces from Supabase
+                                async function fetchUserFaces() {
+                                    try {
+                                        // Use the global function to fetch saved faces
+                                        const { data: faceData, error: faceError } = await window.fetchUserSavedFaces();
+                                        
+                                        if (faceError) {
+                                            throw faceError;
+                                        }
+                                        
+                                        // Clear loading message
+                                        savedFacesContainer.innerHTML = '';
+                                        
+                                        if (!faceData || faceData.length === 0) {
+                                            const noFacesMessage = document.createElement('div');
+                                            noFacesMessage.textContent = 'No saved faces found.';
+                                            noFacesMessage.style.color = 'white';
+                                            noFacesMessage.style.textAlign = 'center';
+                                            savedFacesContainer.appendChild(noFacesMessage);
+                                            return;
+                                        }
+                                        
+                                        // Create a button for each saved face
+                                        for (const face of faceData) {
+                                            if (face.face_path) {
+                                                // Get public URL for the face image
+                                                const { data: urlData } = await window.getSupabaseStorageUrl(face.face_path);
+                                                
+                                                if (urlData && urlData.publicUrl) {
+                                                    const faceButton = document.createElement('img');
+                                                    faceButton.className = 'saved-face-button';
+                                                    faceButton.crossOrigin = 'anonymous';
+                                                    faceButton.src = urlData.publicUrl;
+                                                    
+                                                    // When clicked, use this saved face
+                                                    faceButton.addEventListener('click', () => {
+                                                        // Update the image button with this face
+                                                        imgButton.src = urlData.publicUrl;
+                                                        imgButton.crossOrigin = 'anonymous';
+                                                        
+                                                        // Show delete button
+                                                        deleteBtn.style.display = 'flex';
+                                                        
+                                                        // Update image buttons map
+                                                        imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                                        
+                                                        // Redraw the frame
+                                                        drawFrame();
+                                                        requestAnimationFrame(drawFrame);
+                                                        
+                                                        // Close the modal
+                                                        document.body.removeChild(modal);
+                                                    });
+                                                    
+                                                    savedFacesContainer.appendChild(faceButton);
+                                                }
+                                            }
+                                        }
+                                    } catch (error) {
+                                        console.error('Error fetching saved faces:', error);
+                                        savedFacesContainer.innerHTML = 'Error fetching saved faces. Please try again.';
+                                    }
+                                }
+
+                                // Start fetching saved faces
+                                fetchUserFaces().then(facesData => {
+                                    if (facesData.data) {
+                                        // Create a button for each saved face
+                                        facesData.data.forEach(face => {
+                                            if (face.face_path) {
+                                                // Get public URL for the face image
+                                                supabase.storage
+                                                    .from('user_faces')
+                                                    .getPublicUrl(face.face_path)
+                                                    .then(urlData => {
+                                                        const faceButton = document.createElement('img');
+                                                        faceButton.className = 'saved-face-button';
+                                                        faceButton.crossOrigin = 'anonymous';
+                                                        faceButton.src = urlData.publicUrl;
+                                                        
+                                                        // When clicked, use this saved face
+                                                        faceButton.addEventListener('click', () => {
+                                                            // Update the image button with this face
+                                                            imgButton.src = urlData.publicUrl;
+                                                            imgButton.crossOrigin = 'anonymous';
+                                                            
+                                                            // Show delete button
+                                                            deleteBtn.style.display = 'flex';
+                                                            
+                                                            // Update image buttons map
+                                                            imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                                            
+                                                            // Redraw the frame
+                                                            drawFrame();
+                                                            requestAnimationFrame(drawFrame);
+                                                            
+                                                            // Close the modal
+                                                            document.body.removeChild(modal);
+                                                        });
+                                                        
+                                                        savedFacesContainer.appendChild(faceButton);
+                                                    });
+                                            }
+                                        });
+                                    }
+                                });
+
+                                // Close the modal when clicking outside of it
+                                document.addEventListener('click', function closeModalOnOutsideClick(e) {
+                                    if (!modal.contains(e.target) && e.target !== imgButton) {
+                                        // Check if the modal is still in the document before trying to remove it
+                                        if (modal.parentNode) {
+                                            document.body.removeChild(modal);
+                                        }
+                                        document.removeEventListener('click', closeModalOnOutsideClick);
+                                    }
+                                });
                             });
 
                             const label = document.createElement('div');
@@ -1593,6 +2019,240 @@
                 }
             }
         });
+    </script>
+    
+    <!-- Authentication script -->
+    <script type="module">
+        import { supabase } from './src/supabase.js';
+        import { auth } from './src/auth.js';
+
+        // DOM Elements
+        const authModal = document.getElementById('authModal');
+        const closeBtn = document.querySelector('.close');
+        const authBtn = document.getElementById('authBtn');
+        const profileBtn = document.getElementById('profileBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+
+        // Auth state management
+        let currentUser = null;
+
+        // Add this global function to expose the current user status
+        window.isUserLoggedIn = () => {
+            return currentUser !== null;
+        };
+        
+        window.getCurrentUser = () => {
+            return currentUser;
+        };
+        
+        // Add this function to get saved faces
+        window.fetchUserSavedFaces = async () => {
+            if (!currentUser) return { data: null, error: new Error('Not logged in') };
+            
+            try {
+                // Always fetch fresh data from Supabase (no caching)
+                console.log('Fetching saved faces from database');
+                return await supabase
+                    .from('user_faces')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+            } catch (error) {
+                console.error('Error in fetchUserSavedFaces:', error);
+                return { data: null, error };
+            }
+        };
+        
+        window.getSupabaseStorageUrl = async (path) => {
+            return await supabase.storage
+                .from('user_faces')
+                .getPublicUrl(path);
+        };
+        
+        // Handle email confirmation when the page loads
+        async function handleEmailConfirmation() {
+            // Check if we have a confirmation hash in the URL
+            const hash = window.location.hash;
+            if (hash && (hash.includes('access_token') || hash.includes('confirmation_token'))) {
+                console.log('Detected confirmation URL, processing...');
+                try {
+                    // The supabase client will automatically handle the token exchange
+                    const { data, error } = await supabase.auth.getSession();
+                    
+                    if (error) {
+                        console.error('Error confirming email:', error);
+                        alert('There was an error confirming your email. Please try again or contact support.');
+                    } else if (data.session) {
+                        console.log('Email confirmed successfully!');
+                        
+                        try {
+                            // Try to create the user profile
+                            const { initializeUserData } = await import('./src/auth.js');
+                            
+                            // The user session contains all the needed information
+                            await initializeUserData(
+                                data.session.user.id,
+                                data.session.user.email,
+                                data.session.user.user_metadata?.username
+                            );
+                            
+                            // Redirect to relevant page or update UI
+                            alert('Your email has been confirmed successfully! You are now logged in.');
+                            currentUser = data.session.user;
+                            updateUIForLoggedInUser();
+                            
+                            // Clean URL
+                            window.history.replaceState(null, '', window.location.pathname);
+                        } catch (error) {
+                            console.error('Error setting up user profile:', error);
+                            
+                            // Fallback: Show a message to the user but still let them in
+                            alert('Your email has been confirmed and you can use the application, but there was an issue setting up your profile completely. Some features may be limited.');
+                            currentUser = data.session.user;
+                            updateUIForLoggedInUser();
+                        }
+                    }
+                } catch (err) {
+                    console.error('Exception during confirmation:', err);
+                }
+            }
+        }
+
+        // Check initial auth state
+        async function checkInitialAuthState() {
+            const { session, error } = await auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                updateUIForLoggedInUser();
+                console.log('User is logged in:', currentUser.email);
+            } else {
+                updateUIForLoggedOutUser();
+                console.log('No user session found');
+            }
+        }
+
+        // Call this before checking initial auth state
+        handleEmailConfirmation();
+        // Check initial auth state 
+        checkInitialAuthState();
+
+        // Listen for auth changes
+        const authListener = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                currentUser = session.user;
+                updateUIForLoggedInUser();
+                console.log('User signed in:', currentUser.email);
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                updateUIForLoggedOutUser();
+                console.log('User signed out');
+            }
+        });
+
+        // UI Updates
+        function updateUIForLoggedInUser() {
+            authBtn.textContent = 'Log Out';
+            profileBtn.style.display = 'block';
+        }
+
+        function updateUIForLoggedOutUser() {
+            authBtn.textContent = 'Log In';
+            profileBtn.style.display = 'none';
+        }
+
+        // Auth Modal Controls
+        authBtn.onclick = async () => {
+            if (currentUser) {
+                try {
+                    const { error } = await auth.signOut();
+                    if (error) {
+                        console.error('Error signing out:', error);
+                        alert('Error signing out: ' + error.message);
+                    } else {
+                        console.log('User signed out successfully');
+                        // No need to manually update UI here as the auth listener will handle it
+                    }
+                } catch (err) {
+                    console.error('Exception during sign out:', err);
+                    alert('Error signing out: ' + err.message);
+                }
+            } else {
+                authModal.style.display = 'block';
+            }
+        };
+
+        closeBtn.onclick = () => {
+            authModal.style.display = 'none';
+        };
+
+        window.onclick = (event) => {
+            if (event.target == authModal) {
+                authModal.style.display = 'none';
+            }
+        };
+
+        // Toggle between login and signup forms
+        window.toggleAuthForm = () => {
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Signup handler
+        window.signup = async () => {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const username = document.getElementById('signupUsername').value;
+
+            try {
+                const { data, error } = await auth.signUp(email, password, username);
+                if (error) {
+                    console.error('Detailed signup error:', error);
+                    alert('Error signing up: ' + (error.message || JSON.stringify(error)));
+                } else {
+                    alert('Please check your email for the confirmation link!');
+                    authModal.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Exception during signup:', error);
+                alert('Error creating account: ' + (error.message || JSON.stringify(error)));
+            }
+        };
+
+        // Login handler
+        window.login = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const { data, error } = await auth.signIn(email, password);
+                if (error) {
+                    console.error('Login error:', error);
+                    alert('Error logging in: ' + error.message);
+                } else {
+                    console.log('Login successful');
+                    authModal.style.display = 'none';
+                    // The auth state listener will update the UI
+                }
+            } catch (error) {
+                console.error('Exception during login:', error);
+                alert('Error logging in: ' + error.message);
+            }
+        };
+
+        // Add profile button click handler
+        profileBtn.onclick = () => {
+            window.location.href = 'profile.html';
+        };
+
+        // Add this function to invalidate the faces cache
+        window.invalidateFacesCache = () => {
+            if (!currentUser) return;
+            
+            const cacheKey = `facemememaker-saved-faces-${currentUser.id}`;
+            localStorage.removeItem(cacheKey);
+            console.log('Faces cache invalidated');
+        };
     </script>
 </body>
 </html>

@@ -829,8 +829,16 @@
                 // Update face_count in users table
                 await updateFaceCount();
                 
-                console.log('Face image uploaded successfully:', filePath);
-                return filePath;
+                console.log('Face image uploaded and saved successfully');
+                
+                // Invalidate the faces cache
+                window.invalidateFacesCache && window.invalidateFacesCache();
+                
+                // Update face_count in users table
+                await updateFaceCount();
+                
+                // Return success
+                return true;
             } catch (error) {
                 console.error('Error in uploadFaceImage:', error);
                 throw error;
@@ -880,6 +888,9 @@
                 
                 // Update face_count in users table
                 await updateFaceCount();
+                
+                // Invalidate the faces cache
+                window.invalidateFacesCache && window.invalidateFacesCache();
                 
                 console.log('Face image deleted successfully');
             } catch (error) {

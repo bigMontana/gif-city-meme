@@ -1,7 +1,18 @@
 // Initialize the Supabase client
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-export const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+// Configure client with persistence options
+export const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    // Default to persisting the session for 30 days
+    persistSession: true,
+    // You can adjust this value to change how long the session is stored
+    storageKey: 'facemememaker-auth-token',
+    autoRefreshToken: true,
+    localStorage: window.localStorage
+  }
+});
 
 // Function to get public URL for a file in storage
 function getPublicUrl(bucket, path) {
@@ -67,6 +78,29 @@ export async function fetchTemplateById(id) {
         return null;
     }
 }
+
+// Login handler
+window.login = async () => {
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
+    const rememberMe = document.getElementById('rememberMe').checked;
+
+    try {
+        // Pass the session configuration with login
+        const { data, error } = await auth.signIn(email, password, rememberMe);
+        if (error) {
+            console.error('Login error:', error);
+            alert('Error logging in: ' + error.message);
+        } else {
+            console.log('Login successful');
+            authModal.style.display = 'none';
+            // The auth state listener will update the UI
+        }
+    } catch (error) {
+        console.error('Exception during login:', error);
+        alert('Error logging in: ' + error.message);
+    }
+};
 
 
 

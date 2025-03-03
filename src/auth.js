@@ -96,10 +96,17 @@ export const auth = {
     },
 
     // Sign in with email and password
-    async signIn(email, password) {
+    async signIn(email, password, rememberMe = true) {
+        // Configure session lifetime based on rememberMe flag
+        const sessionOptions = {
+            // If rememberMe is true, session lasts for 30 days, otherwise 1 hour
+            expiresIn: rememberMe ? 60 * 60 * 24 * 30 : 60 * 60
+        };
+
         const { data, error } = await supabase.auth.signInWithPassword({
             email,
             password,
+            options: sessionOptions
         });
 
         if (!error && data.user) {
