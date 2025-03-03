@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <!-- Removing the strict COEP policy that's blocking image loading -->
+    <!-- <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp"> -->
+    <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
+    <title>User Profile - GIF City</title>
+    <!-- Add Supabase environment variables as meta tags -->
+    <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
+    <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        body {
+            background-color: #121212;
+            color: white;
+        }
+        
+        .container {
+            width: 60%;
+            max-width: 1400px; /* Adjust this value to control overall size */
+            margin: 0 auto;
+            padding: 0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #121212;
+            border-bottom: 1px solid #36B2B7;
+        }
+
+        .logo {
+            font-size: 38px;  /* Increased font size for better VT323 display */
+            font-weight: 600;
+            font-family: "Work Sans", sans-serif;
+            font-style: italic;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            width: 240px;
+        }
+        
+        .logo img {
+            margin-right: 10px;
+            width: 100%;
+            height: auto;
+            border-radius: 2px;
+        }
+
+        .buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            font-family: "VT323", serif;
+            font-weight: 500;
+            font-size: 18px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn-primary {
+            background-color: #DA3A98;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #c4327f; /* Darker shade of pink */
+        }
+
+        .btn-secondary {
+            background-color: #36B2B7;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: #2d989d; /* Darker shade of teal */
+        }
+
+        .btn-light {
+            background-color: white;
+            color: black;
+        }
+
+        .btn-light:hover {
+            background-color: #e6e6e6; /* Slightly darker white */
+        }
+
+        /* Auth Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            overflow: auto;
+        }
+
+        .modal-content {
+            background-color: #222;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 350px;
+            max-width: 90%;
+            position: relative;
+        }
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            top: 10px;
+            right: 15px;
+        }
+
+        .close:hover {
+            color: white;
+        }
+
+        #loginForm, #signupForm {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        #loginForm h2, #signupForm h2 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: white;
+            font-size: 24px;
+        }
+
+        #loginForm input, #signupForm input {
+            padding: 12px;
+            border-radius: 5px;
+            border: none;
+            font-size: 16px;
+            background-color: #333;
+            color: white;
+        }
+
+        #loginForm p, #signupForm p {
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #loginForm a, #signupForm a {
+            color: #36B2B7;
+            text-decoration: none;
+        }
+
+        #loginForm a:hover, #signupForm a:hover {
+            text-decoration: underline;
+        }
+
+        /* Profile Content Area */
+        .profile-content {
+            padding: 40px 20px;
+            min-height: calc(100vh - 200px); /* Account for header and footer */
+        }
+
+        .profile-top-bar {
+            display: flex;
+            align-items: center;
+            margin-bottom: 30px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .profile-picture {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #36B2B7;
+            overflow: hidden;
+            border: 3px solid #DA3A98;
+        }
+
+        .profile-picture img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .profile-info {
+            margin-left: 20px;
+        }
+
+        .profile-username {
+            font-size: 28px;
+            margin-bottom: 5px;
+            color: #36B2B7;
+        }
+
+        .profile-email {
+            font-size: 18px;
+            color: #aaa;
+            margin-bottom: 5px;
+        }
+
+        .profile-subscription {
+            font-size: 18px;
+            color: #DA3A98;
+            font-weight: bold;
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            background-color: #36B2B7;
+            margin-top: 40px;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: none;
+            font-size: 24px;
+            font-weight: 500;
+        }
+
+        .footer a:hover {
+            opacity: 0.8;
+        }
+
+        /* Face Quota Buttons Styles */
+        .face-quota-container {
+            margin-top: 30px;
+            background-color: #1e1e1e;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .face-quota-title {
+            font-size: 24px;
+            color: #36B2B7;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .face-buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .face-button {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            transition: transform 0.2s, border-color 0.2s;
+            border: 2px solid #36B2B7;
+            border-radius: 5px;
+            background-color: #2a2a2a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            overflow: visible;
+        }
+
+        .face-button:hover {
+            transform: scale(1.05);
+            border-color: #DA3A98;
+        }
+
+        .face-button-number {
+            position: absolute;
+            bottom: 5px;
+            right: 5px;
+            font-size: 18px;
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 2px 6px;
+            border-radius: 3px;
+            z-index: 2;
+        }
+
+        .face-input {
+            display: none;
+        }
+
+        .face-delete-btn {
+            position: absolute;
+            top: -25px;
+            left: -7px;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background-color: rgba(218, 58, 152, 0.8);
+            color: white;
+            border: none;
+            font-size: 16px;
+            line-height: 1;
+            cursor: pointer;
+            z-index: 2;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+
+        .face-delete-btn:hover {
+            background-color: rgba(218, 58, 152, 1);
+            transform: scale(1.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <a href="index.html" class="logo">
+                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
+            </a>
+            <div class="buttons" id="headerButtons">
+                <button class="btn btn-secondary" id="profileBtn" style="display: none;">Profile</button>
+                <button class="btn btn-light" id="authBtn">Log In</button>
+            </div>
+        </header>
+
+        <!-- Auth Modal -->
+        <div id="authModal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <div id="loginForm">
+                    <h2>Login</h2>
+                    <input type="email" id="loginEmail" placeholder="Email" required>
+                    <input type="password" id="loginPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="login()">Login</button>
+                    <p>Don't have an account? <a href="#" onclick="toggleAuthForm()">Sign Up</a></p>
+                </div>
+                <div id="signupForm" style="display: none;">
+                    <h2>Sign Up</h2>
+                    <input type="text" id="signupUsername" placeholder="Username" required>
+                    <input type="email" id="signupEmail" placeholder="Email" required>
+                    <input type="password" id="signupPassword" placeholder="Password" required>
+                    <button class="btn btn-primary" onclick="signup()">Sign Up</button>
+                    <p>Already have an account? <a href="#" onclick="toggleAuthForm()">Login</a></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Content Container (Empty) -->
+        <div class="profile-content">
+            <div class="profile-top-bar">
+                <div class="profile-picture">
+                    <img src="https://via.placeholder.com/100" alt="Profile Picture" id="profileImage">
+                </div>
+                <div class="profile-info">
+                    <div class="profile-username" id="profileUsername">Username</div>
+                    <div class="profile-email" id="profileEmail">user@example.com</div>
+                    <div class="profile-subscription" id="profileSubscription">Free Tier</div>
+                </div>
+            </div>
+            
+            <!-- Face Quota Container -->
+            <div class="face-quota-container">
+                <div class="face-quota-title">Your Faces (<span id="faceQuotaCount">0</span>)</div>
+                <div class="face-buttons-container" id="faceButtonsContainer">
+                    <!-- Face buttons will be generated dynamically -->
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <div class="footer-links">
+                <a href="#">About</a>
+                <a href="#">Terms</a>
+                <a href="#">Privacy</a>
+            </div>
+            <div class="logo">
+                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <script type="module" src="/src/supabase.js"></script>
+    <script type="module">
+        import { supabase } from './src/supabase.js';
+        import { auth } from './src/auth.js';
+
+        // DOM Elements
+        const authModal = document.getElementById('authModal');
+        const closeBtn = document.querySelector('.close');
+        const authBtn = document.getElementById('authBtn');
+        const profileBtn = document.getElementById('profileBtn');
+        const loginForm = document.getElementById('loginForm');
+        const signupForm = document.getElementById('signupForm');
+
+        // Auth state management
+        let currentUser = null;
+
+        // Check initial auth state
+        async function checkInitialAuthState() {
+            const { session, error } = await auth.getSession();
+            if (session) {
+                currentUser = session.user;
+                updateUIForLoggedInUser();
+                // Fetch and display user profile data including face_quota
+                await fetchUserProfileData();
+                console.log('User is logged in:', currentUser.email);
+            } else {
+                updateUIForLoggedOutUser();
+                console.log('No user session found');
+            }
+        }
+
+        // Check initial auth state 
+        checkInitialAuthState();
+
+        // Listen for auth changes
+        const authListener = supabase.auth.onAuthStateChange((event, session) => {
+            console.log('Auth state changed:', event);
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                currentUser = session.user;
+                updateUIForLoggedInUser();
+                // Also fetch profile data when auth state changes
+                fetchUserProfileData();
+                console.log('User signed in:', currentUser.email);
+            } else if (event === 'SIGNED_OUT') {
+                currentUser = null;
+                updateUIForLoggedOutUser();
+                console.log('User signed out');
+            }
+        });
+
+        // Function to fetch user profile data including face_quota
+        async function fetchUserProfileData() {
+            if (!currentUser) return;
+            
+            try {
+                // Fetch user profile data from profiles table
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                
+                if (error) {
+                    console.error('Error fetching profile data:', error);
+                    // Generate default buttons even when profile fetch fails
+                    updateFaceQuotaDisplay(3);
+                    generateFaceButtons(3);
+                    return;
+                }
+                
+                if (data) {
+                    // Update subscription display
+                    const subscriptionTier = data.subscription_tier || 'Free Tier';
+                    const profileSubscription = document.getElementById('profileSubscription');
+                    if (profileSubscription) {
+                        profileSubscription.textContent = subscriptionTier;
+                    }
+                    
+                    // Update face quota and generate buttons - always show at least 3
+                    const faceQuota = data.face_quota !== undefined ? Math.max(data.face_quota, 3) : 3;
+                    
+                    // Update face quota display to show the quota (not the count)
+                    updateFaceQuotaDisplay(faceQuota);
+                    
+                    // Generate face buttons
+                    generateFaceButtons(faceQuota);
+                    
+                    // Add a small delay before loading face images to ensure any cached headers are cleared
+                    setTimeout(() => {
+                        console.log('Loading existing face images with delay...');
+                        loadExistingFaceImages();
+                    }, 100);
+                } else {
+                    // If no data, still show default buttons
+                    updateFaceQuotaDisplay(3);
+                    generateFaceButtons(3);
+                }
+            } catch (error) {
+                console.error('Exception fetching profile data:', error);
+                // Generate default buttons even when there's an exception
+                updateFaceQuotaDisplay(3);
+                generateFaceButtons(3);
+            }
+        }
+        
+        // Helper function to update face quota display
+        function updateFaceQuotaDisplay(quota) {
+            const faceQuotaCount = document.getElementById('faceQuotaCount');
+            if (faceQuotaCount) {
+                faceQuotaCount.textContent = quota;
+            }
+            
+            // Also update the title to make it clearer
+            const faceQuotaTitle = document.querySelector('.face-quota-title');
+            if (faceQuotaTitle) {
+                // We keep the existing HTML but add more context
+                faceQuotaTitle.innerHTML = `Your Face Slots (<span id="faceQuotaCount">${quota}</span>)`;
+            }
+        }
+
+        // Function to generate face buttons based on face_quota
+        function generateFaceButtons(faceQuota) {
+            // Ensure we have a valid number, default to 3 if not
+            faceQuota = faceQuota || 3;
+            
+            const container = document.getElementById('faceButtonsContainer');
+            if (!container) return;
+            
+            // Clear existing buttons
+            container.innerHTML = '';
+            
+            console.log(`Generating ${faceQuota} face buttons`);
+            
+            // Generate new buttons
+            for (let i = 1; i <= faceQuota; i++) {
+                const button = document.createElement('div');
+                button.className = 'face-button';
+                button.dataset.faceNumber = i;
+                
+                // Create image element for face
+                const imageElement = document.createElement('img');
+                imageElement.alt = `Face ${i}`;
+                imageElement.className = 'face-image';
+                // Set crossOrigin attribute to fix CORS issues
+                imageElement.crossOrigin = "anonymous";
+                
+                // Set a placeholder image
+                imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="100%" height="100%" fill="#444444"/>
+                        <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                            fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
+                    </svg>
+                `);
+                
+                // Create number label
+                const numberDisplay = document.createElement('div');
+                numberDisplay.className = 'face-button-number';
+                numberDisplay.textContent = i;
+                
+                // Create file input for image upload
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.className = 'face-input';
+                fileInput.accept = 'image/*';
+                fileInput.dataset.faceNumber = i;
+                
+                // Create delete button
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'face-delete-btn';
+                deleteBtn.innerHTML = '×';
+                deleteBtn.title = 'Remove face image';
+                deleteBtn.style.display = 'none';
+                
+                // Add loading indicator
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.className = 'face-loading';
+                loadingIndicator.innerHTML = '<div class="spinner"></div>';
+                loadingIndicator.style.display = 'none';
+                
+                // Add click event to button to trigger file input
+                button.addEventListener('click', () => {
+                    // Only trigger file dialog if not currently uploading
+                    if (loadingIndicator.style.display !== 'flex') {
+                        fileInput.click();
+                    }
+                });
+                
+                // Add change event to file input
+                fileInput.addEventListener('change', async (e) => {
+                    if (e.target.files && e.target.files[0]) {
+                        const file = e.target.files[0];
+                        
+                        // Show loading indicator
+                        loadingIndicator.style.display = 'flex';
+                        
+                        try {
+                            // Create a temporary preview
+                            const reader = new FileReader();
+                            reader.onload = (event) => {
+                                imageElement.src = event.target.result;
+                            };
+                            reader.readAsDataURL(file);
+                            
+                            // Upload the image to Supabase storage
+                            await uploadFaceImage(file, i, button);
+                            
+                            // Update UI to show delete button
+                            deleteBtn.style.display = 'flex';
+                        } catch (error) {
+                            console.error('Error uploading face image:', error);
+                            alert('Error uploading face image: ' + error.message);
+                            
+                            // Reset to placeholder on error
+                            imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                                <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                    <rect width="100%" height="100%" fill="#444444"/>
+                                    <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                        fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
+                                </svg>
+                            `);
+                        } finally {
+                            // Hide loading indicator
+                            loadingIndicator.style.display = 'none';
+                        }
+                    }
+                });
+                
+                // Add click event to delete button
+                deleteBtn.addEventListener('click', async (e) => {
+                    e.stopPropagation(); // Prevent button click event from triggering file upload
+                    
+                    // Show loading indicator
+                    loadingIndicator.style.display = 'flex';
+                    deleteBtn.style.display = 'none';
+                    
+                    try {
+                        // Delete the image from Supabase
+                        await deleteFaceImage(i);
+                        
+                        // Reset to placeholder image
+                        imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
+                            <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="100%" height="100%" fill="#444444"/>
+                                <text x="50%" y="50%" font-family="Arial" font-size="12" 
+                                    fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
+                            </svg>
+                        `);
+                        
+                        // Clear file input
+                        fileInput.value = '';
+                    } catch (error) {
+                        console.error('Error deleting face image:', error);
+                        alert('Error deleting face image: ' + error.message);
+                        
+                        // Show delete button again if deletion failed
+                        deleteBtn.style.display = 'flex';
+                    } finally {
+                        // Hide loading indicator
+                        loadingIndicator.style.display = 'none';
+                    }
+                });
+                
+                // Add elements to button
+                button.appendChild(imageElement);
+                button.appendChild(numberDisplay);
+                button.appendChild(deleteBtn);
+                button.appendChild(fileInput);
+                button.appendChild(loadingIndicator);
+                
+                // Add button to container
+                container.appendChild(button);
+            }
+            
+            // Add styles for loading indicator if not already present
+            if (!document.getElementById('face-loading-styles')) {
+                const style = document.createElement('style');
+                style.id = 'face-loading-styles';
+                style.textContent = `
+                    .face-loading {
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        width: 100%;
+                        height: 100%;
+                        background-color: rgba(0,0,0,0.5);
+                        display: none;
+                        justify-content: center;
+                        align-items: center;
+                        z-index: 3;
+                    }
+                    .spinner {
+                        width: 24px;
+                        height: 24px;
+                        border: 3px solid rgba(255,255,255,0.3);
+                        border-radius: 50%;
+                        border-top-color: #ffffff;
+                        animation: spin 1s ease-in-out infinite;
+                    }
+                    @keyframes spin {
+                        to { transform: rotate(360deg); }
+                    }
+                    .face-image {
+                        width: 100%;
+                        height: 100%;
+                        object-fit: cover;
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+            
+            // Restore the direct call to load existing face images
+            loadExistingFaceImages();
+        }
+
+        // Function to upload face image to Supabase storage
+        async function uploadFaceImage(file, faceNumber, buttonElement) {
+            if (!currentUser) {
+                throw new Error('You must be logged in to upload face images');
+            }
+            
+            try {
+                // Generate a unique file path
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${currentUser.id}_face${faceNumber}_${Date.now()}.${fileExt}`;
+                const filePath = `${currentUser.id}/${fileName}`;
+                
+                // Upload file to Supabase Storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                    .from('user_faces')
+                    .upload(filePath, file, {
+                        cacheControl: '3600',
+                        upsert: true
+                    });
+                
+                if (uploadError) {
+                    throw uploadError;
+                }
+                
+                // Get public URL for the uploaded file
+                const { data: publicUrlData } = await supabase.storage
+                    .from('user_faces')
+                    .getPublicUrl(filePath);
+                
+                if (!publicUrlData || !publicUrlData.publicUrl) {
+                    throw new Error('Failed to get public URL for uploaded image');
+                }
+                
+                const imageUrl = publicUrlData.publicUrl;
+                
+                // Insert or update record in user_faces table
+                // First, check if a record already exists
+                const { data: existingRecord, error: queryError } = await supabase
+                    .from('user_faces')
+                    .select('id, face_path')
+                    .eq('user_id', currentUser.id)
+                    .eq('face_number', faceNumber)
+                    .maybeSingle();
+                
+                if (queryError) {
+                    throw queryError;
+                }
+                
+                let insertError = null;
+                
+                if (existingRecord) {
+                    // Delete the old file from storage if it exists
+                    if (existingRecord.face_path) {
+                        try {
+                            await supabase.storage
+                                .from('user_faces')
+                                .remove([existingRecord.face_path]);
+                        } catch (removeError) {
+                            console.warn('Could not remove old face image:', removeError);
+                            // Continue with update even if old file removal fails
+                        }
+                    }
+                    
+                    // Update existing record
+                    const { error: updateError } = await supabase
+                        .from('user_faces')
+                        .update({ face_path: filePath })
+                        .eq('id', existingRecord.id);
+                    
+                    insertError = updateError;
+                } else {
+                    // Insert new record
+                    const { error: insertNewError } = await supabase
+                        .from('user_faces')
+                        .insert([
+                            {
+                                user_id: currentUser.id,
+                                face_path: filePath,
+                                face_number: faceNumber
+                            }
+                        ]);
+                    
+                    insertError = insertNewError;
+                }
+                
+                if (insertError) {
+                    throw insertError;
+                }
+                
+                // Find image element and update with public URL
+                const imageElement = buttonElement.querySelector('img');
+                if (imageElement) {
+                    // Set crossOrigin before setting the src to handle CORS
+                    imageElement.crossOrigin = "anonymous";
+                    imageElement.src = imageUrl;
+                }
+                
+                // Update face_count in users table
+                await updateFaceCount();
+                
+                console.log('Face image uploaded successfully:', filePath);
+                return filePath;
+            } catch (error) {
+                console.error('Error in uploadFaceImage:', error);
+                throw error;
+            }
+        }
+
+        // Function to delete a face image
+        async function deleteFaceImage(faceNumber) {
+            if (!currentUser) {
+                throw new Error('You must be logged in to delete face images');
+            }
+            
+            try {
+                // Get the record to find the file path
+                const { data: faceData, error: queryError } = await supabase
+                    .from('user_faces')
+                    .select('face_path')
+                    .eq('user_id', currentUser.id)
+                    .eq('face_number', faceNumber)
+                    .maybeSingle();
+                
+                if (queryError) {
+                    throw queryError;
+                }
+                
+                if (faceData && faceData.face_path) {
+                    // Delete the file from storage
+                    const { error: deleteStorageError } = await supabase.storage
+                        .from('user_faces')
+                        .remove([faceData.face_path]);
+                    
+                    if (deleteStorageError) {
+                        throw deleteStorageError;
+                    }
+                }
+                
+                // Delete the record from user_faces table
+                const { error: deleteRecordError } = await supabase
+                    .from('user_faces')
+                    .delete()
+                    .eq('user_id', currentUser.id)
+                    .eq('face_number', faceNumber);
+                
+                if (deleteRecordError) {
+                    throw deleteRecordError;
+                }
+                
+                // Update face_count in users table
+                await updateFaceCount();
+                
+                console.log('Face image deleted successfully');
+            } catch (error) {
+                console.error('Error in deleteFaceImage:', error);
+                throw error;
+            }
+        }
+
+        // Function to update the face_count in the users table
+        async function updateFaceCount() {
+            if (!currentUser) return;
+            
+            try {
+                // Count the user's faces
+                const { data, error: countError } = await supabase
+                    .from('user_faces')
+                    .select('id', { count: 'exact' })
+                    .eq('user_id', currentUser.id);
+                
+                if (countError) {
+                    throw countError;
+                }
+                
+                const faceCount = data?.length || 0;
+                
+                // Update the face_count in users table
+                const { error: updateError } = await supabase
+                    .from('users')
+                    .update({ face_count: faceCount })
+                    .eq('id', currentUser.id);
+                
+                if (updateError) {
+                    throw updateError;
+                }
+                
+                console.log('Updated face_count to', faceCount);
+            } catch (error) {
+                console.error('Error updating face_count:', error);
+            }
+        }
+
+        // Function to load existing face images from Supabase
+        async function loadExistingFaceImages() {
+            if (!currentUser) return;
+            
+            try {
+                // Fetch existing face images from user_faces table
+                const { data, error } = await supabase
+                    .from('user_faces')
+                    .select('*')
+                    .eq('user_id', currentUser.id);
+                
+                if (error) {
+                    console.error('Error fetching face images:', error);
+                    return;
+                }
+                
+                if (data && data.length > 0) {
+                    console.log('Found existing face images:', data.length);
+                    
+                    // Process each face image
+                    for (const face of data) {
+                        const faceNumber = face.face_number;
+                        const facePath = face.face_path;
+                        
+                        if (faceNumber && facePath) {
+                            // Get the public URL for this face image
+                            const { data: urlData } = await supabase.storage
+                                .from('user_faces')
+                                .getPublicUrl(facePath);
+                            
+                            if (urlData && urlData.publicUrl) {
+                                // Find the corresponding face button
+                                const button = document.querySelector(`.face-button[data-face-number="${faceNumber}"]`);
+                                if (button) {
+                                    const imageElement = button.querySelector('img');
+                                    const deleteBtn = button.querySelector('.face-delete-btn');
+                                    
+                                    if (imageElement) {
+                                        // Add crossOrigin attribute before setting src
+                                        imageElement.crossOrigin = "anonymous";
+                                        // Update the button to show the existing image
+                                        imageElement.src = urlData.publicUrl;
+                                        console.log(`Loaded face ${faceNumber} image:`, urlData.publicUrl);
+                                    }
+                                    
+                                    if (deleteBtn) {
+                                        deleteBtn.style.display = 'flex';
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    console.log('No existing face images found');
+                }
+            } catch (error) {
+                console.error('Exception fetching face images:', error);
+            }
+        }
+
+        // UI Updates
+        function updateUIForLoggedInUser() {
+            authBtn.textContent = 'Log Out';
+            profileBtn.style.display = 'block';
+            
+            // Update profile information if available
+            if (currentUser) {
+                // Update email
+                const profileEmail = document.getElementById('profileEmail');
+                if (profileEmail) {
+                    profileEmail.textContent = currentUser.email || 'No email available';
+                }
+                
+                // Update username (from user metadata if available)
+                const profileUsername = document.getElementById('profileUsername');
+                if (profileUsername) {
+                    // Try to get username from metadata or use email as fallback
+                    const userMeta = currentUser.user_metadata;
+                    profileUsername.textContent = 
+                        (userMeta && userMeta.username) ? 
+                        userMeta.username : 
+                        currentUser.email.split('@')[0];
+                }
+            }
+        }
+
+        function updateUIForLoggedOutUser() {
+            authBtn.textContent = 'Log In';
+            profileBtn.style.display = 'none';
+            
+            // Reset profile data
+            const profileSubscription = document.getElementById('profileSubscription');
+            if (profileSubscription) {
+                profileSubscription.textContent = 'Free Tier';
+            }
+            
+            // Update face quota display and generate buttons
+            updateFaceQuotaDisplay(3);
+            generateFaceButtons(3);
+        }
+
+        // Auth Modal Controls
+        authBtn.onclick = async () => {
+            if (currentUser) {
+                try {
+                    const { error } = await auth.signOut();
+                    if (error) {
+                        console.error('Error signing out:', error);
+                        alert('Error signing out: ' + error.message);
+                    } else {
+                        console.log('User signed out successfully');
+                        // Redirect to homepage after successful logout
+                        window.location.href = 'index.html';
+                        // No need for manual UI updates since we're redirecting
+                    }
+                } catch (err) {
+                    console.error('Exception during sign out:', err);
+                    alert('Error signing out: ' + err.message);
+                }
+            } else {
+                authModal.style.display = 'block';
+            }
+        };
+
+        closeBtn.onclick = () => {
+            authModal.style.display = 'none';
+        };
+
+        window.onclick = (event) => {
+            if (event.target == authModal) {
+                authModal.style.display = 'none';
+            }
+        };
+
+        // Toggle between login and signup forms
+        window.toggleAuthForm = () => {
+            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
+            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // Signup handler
+        window.signup = async () => {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const username = document.getElementById('signupUsername').value;
+
+            try {
+                const { data, error } = await auth.signUp(email, password, username);
+                if (error) {
+                    console.error('Detailed signup error:', error);
+                    alert('Error signing up: ' + (error.message || JSON.stringify(error)));
+                } else {
+                    alert('Please check your email for the confirmation link!');
+                    authModal.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Exception during signup:', error);
+                alert('Error creating account: ' + (error.message || JSON.stringify(error)));
+            }
+        };
+
+        // Login handler
+        window.login = async () => {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const { data, error } = await auth.signIn(email, password);
+                if (error) {
+                    console.error('Login error:', error);
+                    alert('Error logging in: ' + error.message);
+                } else {
+                    console.log('Login successful');
+                    authModal.style.display = 'none';
+                    // The auth state listener will update the UI
+                }
+            } catch (error) {
+                console.error('Exception during login:', error);
+                alert('Error logging in: ' + error.message);
+            }
+        };
+
+        // Profile button click handler
+        profileBtn.onclick = () => {
+            // Already on profile page, so no navigation needed
+        };
+    </script>
+</body>
+</html> 
