@@ -11,12 +11,12 @@ export const TIER_LIMITS = {
         stored_meme_quota: 0
     },
     [SUBSCRIPTION_TIERS.BASIC]: {
-        face_quota: 10,
+        face_quota: 15,
         meme_storage_enabled: true,
         stored_meme_quota: 20
     },
     [SUBSCRIPTION_TIERS.PREMIUM]: {
-        face_quota: 50,
+        face_quota: 40,
         meme_storage_enabled: true,
         stored_meme_quota: 100
     }

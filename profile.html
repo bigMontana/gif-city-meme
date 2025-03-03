@@ -418,6 +418,8 @@
     <script type="module">
         import { supabase } from './src/supabase.js';
         import { auth } from './src/auth.js';
+        import { SUBSCRIPTION_TIERS, TIER_LIMITS } from './src/constants.js';
+        import { subscriptionService } from './src/subscriptionService.js';
 
         // DOM Elements
         const authModal = document.getElementById('authModal');
@@ -469,9 +471,9 @@
             if (!currentUser) return;
             
             try {
-                // Fetch user profile data from profiles table
+                // Fetch user profile data from users table instead of profiles table
                 const { data, error } = await supabase
-                    .from('profiles')
+                    .from('users')
                     .select('*')
                     .eq('id', currentUser.id)
                     .single();
@@ -486,14 +488,19 @@
                 
                 if (data) {
                     // Update subscription display
-                    const subscriptionTier = data.subscription_tier || 'Free Tier';
+                    const subscriptionTier = data.subscription_tier ? data.subscription_tier.toUpperCase() + ' TIER' : 'FREE TIER';
                     const profileSubscription = document.getElementById('profileSubscription');
                     if (profileSubscription) {
                         profileSubscription.textContent = subscriptionTier;
                     }
                     
-                    // Update face quota and generate buttons - always show at least 3
-                    const faceQuota = data.face_quota !== undefined ? Math.max(data.face_quota, 3) : 3;
+                    // Get the face quota from TIER_LIMITS based on the user's subscription tier
+                    const userTier = data.subscription_tier || SUBSCRIPTION_TIERS.FREE;
+                    const tierFaceQuota = TIER_LIMITS[userTier].face_quota;
+                    
+                    // Use the face quota from constants.js instead of the database value
+                    // Always show at least 3 slots
+                    const faceQuota = Math.max(tierFaceQuota, 3);
                     
                     // Update face quota display to show the quota (not the count)
                     updateFaceQuotaDisplay(faceQuota);
@@ -529,8 +536,45 @@
             // Also update the title to make it clearer
             const faceQuotaTitle = document.querySelector('.face-quota-title');
             if (faceQuotaTitle) {
-                // We keep the existing HTML but add more context
-                faceQuotaTitle.innerHTML = `Your Face Slots (<span id="faceQuotaCount">${quota}</span>)`;
+                // Get the current user's subscription tier
+                const profileSubscription = document.getElementById('profileSubscription');
+                const currentTier = profileSubscription ? profileSubscription.textContent.toLowerCase() : 'free tier';
+                
+                // Create a more informative title that shows the tier limits
+                let titleText = `Your Face Slots (<span id="faceQuotaCount">${quota}</span> available)`;
+                
+                // Add tier information
+                titleText += `<div class="tier-limits-info">`;
+                titleText += `<span class="free-tier-info">Free: ${TIER_LIMITS[SUBSCRIPTION_TIERS.FREE].face_quota}</span>`;
+                titleText += `<span class="basic-tier-info">Basic: ${TIER_LIMITS[SUBSCRIPTION_TIERS.BASIC].face_quota}</span>`;
+                titleText += `<span class="premium-tier-info">Premium: ${TIER_LIMITS[SUBSCRIPTION_TIERS.PREMIUM].face_quota}</span>`;
+                titleText += `</div>`;
+                
+                faceQuotaTitle.innerHTML = titleText;
+            }
+            
+            // Add styles for tier info if not already present
+            if (!document.getElementById('tier-info-styles')) {
+                const style = document.createElement('style');
+                style.id = 'tier-info-styles';
+                style.textContent = `
+                    .tier-limits-info {
+                        display: flex;
+                        font-size: 12px;
+                        margin-top: 5px;
+                        gap: 10px;
+                    }
+                    .free-tier-info {
+                        color: #aaaaaa;
+                    }
+                    .basic-tier-info {
+                        color: #36B2B7;
+                    }
+                    .premium-tier-info {
+                        color: #DA3A98;
+                    }
+                `;
+                document.head.appendChild(style);
             }
         }
 
@@ -546,6 +590,10 @@
             container.innerHTML = '';
             
             console.log(`Generating ${faceQuota} face buttons`);
+            
+            // Get tier limits for visual indicators
+            const freeTierLimit = TIER_LIMITS[SUBSCRIPTION_TIERS.FREE].face_quota;
+            const basicTierLimit = TIER_LIMITS[SUBSCRIPTION_TIERS.BASIC].face_quota;
             
             // Generate new buttons
             for (let i = 1; i <= faceQuota; i++) {
@@ -574,13 +622,6 @@
                 numberDisplay.className = 'face-button-number';
                 numberDisplay.textContent = i;
                 
-                // Create file input for image upload
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.className = 'face-input';
-                fileInput.accept = 'image/*';
-                fileInput.dataset.faceNumber = i;
-                
                 // Create delete button
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'face-delete-btn';
@@ -593,6 +634,29 @@
                 loadingIndicator.className = 'face-loading';
                 loadingIndicator.innerHTML = '<div class="spinner"></div>';
                 loadingIndicator.style.display = 'none';
+                
+                // Create file input for image upload
+                const fileInput = document.createElement('input');
+                fileInput.type = 'file';
+                fileInput.className = 'face-input';
+                fileInput.accept = 'image/*';
+                fileInput.dataset.faceNumber = i;
+                
+                // Add tier indicator for slots beyond free tier
+                if (i > freeTierLimit) {
+                    const tierIndicator = document.createElement('div');
+                    tierIndicator.className = 'tier-indicator';
+                    
+                    if (i <= basicTierLimit) {
+                        tierIndicator.textContent = 'BASIC';
+                        tierIndicator.classList.add('basic-tier');
+                    } else {
+                        tierIndicator.textContent = 'PREMIUM';
+                        tierIndicator.classList.add('premium-tier');
+                    }
+                    
+                    button.appendChild(tierIndicator);
+                }
                 
                 // Add click event to button to trigger file input
                 button.addEventListener('click', () => {
@@ -721,8 +785,45 @@
                         height: 100%;
                         object-fit: cover;
                     }
+                    .tier-indicator {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        padding: 2px 5px;
+                        font-size: 10px;
+                        color: white;
+                        z-index: 2;
+                    }
+                    .basic-tier {
+                        background-color: #36B2B7;
+                    }
+                    .premium-tier {
+                        background-color: #DA3A98;
+                    }
                 `;
                 document.head.appendChild(style);
+            } else {
+                // Update existing styles to include tier indicators
+                const existingStyle = document.getElementById('face-loading-styles');
+                if (!existingStyle.textContent.includes('tier-indicator')) {
+                    existingStyle.textContent += `
+                    .tier-indicator {
+                        position: absolute;
+                        top: 0;
+                        right: 0;
+                        padding: 2px 5px;
+                        font-size: 10px;
+                        color: white;
+                        z-index: 2;
+                    }
+                    .basic-tier {
+                        background-color: #36B2B7;
+                    }
+                    .premium-tier {
+                        background-color: #DA3A98;
+                    }
+                    `;
+                }
             }
             
             // Restore the direct call to load existing face images

@@ -418,17 +418,41 @@
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
-            font-size: 16px;
-            margin-top: 10px;
+            font-size: 20px; /* Increased from 16px by 25% */
+            margin: 10px auto; /* Changed from margin-top to margin for centering */
             transition: background-color 0.3s;
+            display: block; /* Added to center the button */
         }
 
         .choose-range-btn:hover {
             background-color: #2a8a8e;
         }
 
+        /* Watermark toggle button styles */
+        .watermark-toggle-btn {
+            background-color: #36B2B7; /* Reverted back to original teal color */
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px; /* Increased from 16px by 25% */
+            transition: background-color 0.3s;
+            display: block; /* Added to center the button */
+            margin: 10px auto; /* Added for centering */
+        }
+
+        .watermark-toggle-btn:hover {
+            background-color: #2a8a8e; /* Reverted back to original teal hover color */
+        }
+
+        .watermark-toggle-btn.active {
+            background-color: #DA3A98; /* Changed from pink to #DA3A98 to match render buttons */
+        }
+
         .toggle-button {
             background-color: #dc3545;
+            font-size: 20px; /* Increased from 16px by 25% */
         }
         
         .toggle-button.active {
@@ -440,6 +464,7 @@
             background-color: #36B2B7;  /* Change to teal */
             margin: 20px auto;  /* Add margin and auto for centering */
             display: block;  /* Make it block to allow margin auto to work */
+            font-size: 20px; /* Increased from 16px by 25% */
         }
         
         .ffmpeg-button:hover {
@@ -717,7 +742,10 @@
                    value="0" 
                    step="1" 
                    style="width: 100%; margin: 20px 0;">
-            <button id="chooseRangeBtn" class="choose-range-btn">Choose Range</button>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <button id="chooseRangeBtn" class="choose-range-btn">Choose Range</button>
+                <button id="removeWatermarkBtn" class="watermark-toggle-btn">Remove Watermark</button>
+            </div>
         </div>
         
         <!-- Range slider container -->
@@ -913,6 +941,7 @@
             let audioContext = null;
             let audioSource = null;
             let audioDestination = null;
+            let watermarkRemoved = false; // Global variable to track watermark state
             
             // Add logo image loading at the top with other initializations
             const logoImage = new Image();
@@ -1706,11 +1735,10 @@
                             ctx.shadowOffsetX = 5;
                             ctx.shadowOffsetY = 5;
                             
-                            // Check if watermark should be hidden
-                            const removeWatermark = document.getElementById('removeWatermark')?.checked || false;
+                            // Check if watermark should be hidden using the global variable
                             
                             // Set appropriate opacity
-                            if (removeWatermark) {
+                            if (watermarkRemoved) {
                                 ctx.globalAlpha = 0; // Hide watermark completely
                             } else {
                                 ctx.globalAlpha = 1; // Show watermark normally
@@ -1745,37 +1773,6 @@
                 controlsContainer.style.display = 'flex';
                 controlsContainer.style.flexDirection = 'column';
                 controlsContainer.style.gap = '10px';
-                
-                // Watermark control container
-                const watermarkControlContainer = document.createElement('div');
-                watermarkControlContainer.style.display = 'flex';
-                watermarkControlContainer.style.alignItems = 'center';
-                watermarkControlContainer.style.gap = '10px';
-                watermarkControlContainer.style.marginBottom = '5px';
-                
-                // Create watermark checkbox
-                const watermarkCheckbox = document.createElement('input');
-                watermarkCheckbox.type = 'checkbox';
-                watermarkCheckbox.id = 'removeWatermark';
-                
-                // Create label for the checkbox
-                const watermarkLabel = document.createElement('label');
-                watermarkLabel.htmlFor = 'removeWatermark';
-                watermarkLabel.textContent = 'Remove Watermark';
-                watermarkLabel.style.color = 'white';
-                
-                // Add elements to watermark control container
-                watermarkControlContainer.appendChild(watermarkCheckbox);
-                watermarkControlContainer.appendChild(watermarkLabel);
-                
-                // Add event listener to refresh canvas when checkbox state changes
-                watermarkCheckbox.addEventListener('change', () => {
-                    // Request a new animation frame to redraw the canvas with updated watermark visibility
-                    requestAnimationFrame(drawFrame);
-                });
-                
-                // Add to main controls
-                controlsContainer.appendChild(watermarkControlContainer);
                 
                 // Add time controls container
                 const timeControlsContainer = document.createElement('div');
@@ -1917,6 +1914,24 @@
                     scrubber.style.setProperty('--value-percent', `${percent}%`);
                     handleSeek(currentFrame / 30);
                 });
+                
+                // Add event listener for watermark toggle button
+                const watermarkToggleBtn = document.getElementById('removeWatermarkBtn');
+                if (watermarkToggleBtn) {
+                    watermarkToggleBtn.addEventListener('click', () => {
+                        watermarkRemoved = !watermarkRemoved;
+                        
+                        // Update button class based on state
+                        if (watermarkRemoved) {
+                            watermarkToggleBtn.classList.add('active');
+                        } else {
+                            watermarkToggleBtn.classList.remove('active');
+                        }
+                        
+                        // Request a new animation frame to redraw the canvas with updated watermark visibility
+                        requestAnimationFrame(drawFrame);
+                    });
+                }
                 
                 // Choose Range button functionality
                 const chooseRangeBtn = document.getElementById('chooseRangeBtn');
