@@ -201,8 +201,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set global alpha to 0.5 before drawing the face image
                 ctx.globalAlpha = 0.5;
                 
-                // Draw the overlay image
-                ctx.drawImage(face.overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
+                // Draw the overlay image with respect to aspect ratio
+                if (face.overlayImage.naturalWidth && face.overlayImage.naturalHeight) {
+                    const imgWidth = face.overlayImage.naturalWidth;
+                    const imgHeight = face.overlayImage.naturalHeight;
+                    const imgAspect = imgWidth / imgHeight;
+                    
+                    let drawWidth, drawHeight, offsetX, offsetY;
+                    
+                    if (imgAspect > 1) {
+                        // Landscape image - use full width, adjust height
+                        drawWidth = faceSize;
+                        drawHeight = faceSize / imgAspect;
+                        offsetX = -halfFaceSize;
+                        offsetY = -drawHeight / 2;
+                    } else {
+                        // Portrait or square image - use full height, adjust width
+                        drawHeight = faceSize;
+                        drawWidth = faceSize * imgAspect;
+                        offsetX = -drawWidth / 2;
+                        offsetY = -halfFaceSize;
+                    }
+                    
+                    // Draw the face image with proper aspect ratio
+                    ctx.drawImage(face.overlayImage, offsetX, offsetY, drawWidth, drawHeight);
+                } else {
+                    // Fallback to square if dimensions aren't available
+                    ctx.drawImage(face.overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
+                }
                 
                 // Reset global alpha back to 1.0 for other drawings
                 ctx.globalAlpha = 1.0;
@@ -762,7 +788,35 @@ document.addEventListener('DOMContentLoaded', () => {
                                 const faceSize = Math.round(canvas.width * 0.104); // 10.4% of video width
                                 const halfFaceSize = faceSize / 2;
                                 
-                                offscreenCtx.drawImage(faces[currentFace].overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
+                                // Draw the overlay image with respect to aspect ratio
+                                if (faces[currentFace].overlayImage.naturalWidth && faces[currentFace].overlayImage.naturalHeight) {
+                                    const imgWidth = faces[currentFace].overlayImage.naturalWidth;
+                                    const imgHeight = faces[currentFace].overlayImage.naturalHeight;
+                                    const imgAspect = imgWidth / imgHeight;
+                                    
+                                    let drawWidth, drawHeight, offsetX, offsetY;
+                                    
+                                    if (imgAspect > 1) {
+                                        // Landscape image - use full width, adjust height
+                                        drawWidth = faceSize;
+                                        drawHeight = faceSize / imgAspect;
+                                        offsetX = -halfFaceSize;
+                                        offsetY = -drawHeight / 2;
+                                    } else {
+                                        // Portrait or square image - use full height, adjust width
+                                        drawHeight = faceSize;
+                                        drawWidth = faceSize * imgAspect;
+                                        offsetX = -drawWidth / 2;
+                                        offsetY = -halfFaceSize;
+                                    }
+                                    
+                                    // Draw the face image with proper aspect ratio
+                                    offscreenCtx.drawImage(faces[currentFace].overlayImage, offsetX, offsetY, drawWidth, drawHeight);
+                                } else {
+                                    // Fallback to square if dimensions aren't available
+                                    offscreenCtx.drawImage(faces[currentFace].overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
+                                }
+                                
                                 offscreenCtx.restore();
                             }
                             

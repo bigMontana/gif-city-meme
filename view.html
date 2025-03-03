@@ -563,8 +563,33 @@
                                 if (imageToUse && imageToUse.complete) {
                                     // Clear the temporary canvas first
                                     tempCtx.clearRect(0, 0, 200, 200);
-                                    // Draw the face
-                                    tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                    
+                                    // Respect the aspect ratio of the original image
+                                    if (imageToUse.naturalWidth && imageToUse.naturalHeight) {
+                                        const imgWidth = imageToUse.naturalWidth;
+                                        const imgHeight = imageToUse.naturalHeight;
+                                        const imgAspect = imgWidth / imgHeight;
+                                        
+                                        let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                                        
+                                        if (imgAspect > 1) {
+                                            // Landscape image - use full width, adjust height
+                                            drawWidth = 200;
+                                            drawHeight = 200 / imgAspect;
+                                            offsetY = (200 - drawHeight) / 2; // Center vertically
+                                        } else {
+                                            // Portrait or square image - use full height, adjust width
+                                            drawHeight = 200;
+                                            drawWidth = 200 * imgAspect;
+                                            offsetX = (200 - drawWidth) / 2; // Center horizontally
+                                        }
+                                        
+                                        // Draw the face with proper aspect ratio
+                                        tempCtx.drawImage(imageToUse, offsetX, offsetY, drawWidth, drawHeight);
+                                    } else {
+                                        // Fallback to square if dimensions aren't available
+                                        tempCtx.drawImage(imageToUse, 0, 0, 200, 200);
+                                    }
                                 }
 
                                 // Apply masking

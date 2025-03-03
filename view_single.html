@@ -9,10 +9,11 @@
     <!-- Add Supabase environment variables as meta tags -->
     <meta name="supabase-url" content="https://nsoosytflcsgukxvrgcd.supabase.co">
     <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs">
-    <title>Meme Viewer</title>
+    <title>GIFCITY</title>
     <!-- Add Google Fonts -->
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
     <!-- Load FFmpeg scripts with proper order and defer attributes -->
+    <link rel="icon" href="/public/favicon.ico" type="image/x-icon">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script type="module" src="/src/supabase.js"></script>
     <script type="module" src="/src/auth.js"></script>
@@ -358,13 +359,72 @@
 
         /* Create the filled part of the track */
         #videoScrubber {
-            background: linear-gradient(to right, 
-                #36B2B7 var(--value-percent, 0%), 
-                #FF69B4 var(--value-percent, 0%), 
-                #FF69B4 calc(var(--value-percent, 0%) + 2px), 
-                white calc(var(--value-percent, 0%) + 2px)
-            );
-            border-radius: 4px;  /* Slightly rounded corners */
+            --value-percent: 0%;
+            background: linear-gradient(to right, #36B2B7 0%, #36B2B7 var(--value-percent), transparent var(--value-percent), transparent 100%);
+        }
+
+        /* Range slider container styles */
+        .range-slider-container {
+            width: 100%;
+            padding: 0 10px;
+            box-sizing: border-box;
+            display: none; /* Initially hide the range slider */
+            margin-bottom: 20px;
+        }
+
+        /* Multi-handle range slider styles */
+        .range-slider {
+            position: relative;
+            width: 100%;
+            height: 8px;
+            background: white;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .range-slider .range-selected {
+            position: absolute;
+            height: 100%;
+            background-color: #36B2B7;
+            border-radius: 4px;
+        }
+
+        .range-slider .handle {
+            position: absolute;
+            width: 12px;
+            height: 28px;
+            background: #36B2B7;
+            border: 2px solid white;
+            border-radius: 0;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            z-index: 2;
+        }
+
+        .range-slider .handle.start {
+            left: 0%;
+        }
+
+        .range-slider .handle.end {
+            left: 100%;
+        }
+
+        /* Choose Range button styles */
+        .choose-range-btn {
+            background-color: #36B2B7;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+            transition: background-color 0.3s;
+        }
+
+        .choose-range-btn:hover {
+            background-color: #2a8a8e;
         }
 
         .toggle-button {
@@ -585,6 +645,26 @@
             align-items: center;
             justify-content: center;
         }
+
+        /* Add styles for the resolution buttons */
+        .resolution-buttons-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px auto;
+        }
+        
+        .resolution-button {
+            background-color: #DA3A98; /* Pink color for the resolution buttons */
+            flex: 1;
+            min-width: 150px;
+            max-width: 200px;
+        }
+        
+        .resolution-button:hover {
+            background-color: #c4327f; /* Darker pink for hover */
+        }
     </style>
 </head>
 <body>
@@ -637,16 +717,51 @@
                    value="0" 
                    step="1" 
                    style="width: 100%; margin: 20px 0;">
+            <button id="chooseRangeBtn" class="choose-range-btn">Choose Range</button>
+        </div>
+        
+        <!-- Range slider container -->
+        <div class="range-slider-container">
+            <div class="range-slider" id="rangeSlider">
+                <div class="range-selected"></div>
+                <div class="handle start" id="startHandle"></div>
+                <div class="handle end" id="endHandle"></div>
+            </div>
+            <div class="range-values">
+                <span id="startValue">0:00</span> - <span id="endValue">0:00</span>
+            </div>
         </div>
 
         <div id="video-container">
             <canvas id="renderCanvas"></canvas>
         </div>
 
+        <!-- Replace the single ffmpeg button with a button container -->
         <button id="ffmpegButton" class="ffmpeg-button" disabled>
             Render MP4 1080p
             <span id="ffmpegSpinner" class="loading-spinner" style="display: none;"></span>
         </button>
+
+        <!-- Add new resolution buttons in a container -->
+        <div class="resolution-buttons-container">
+            <button id="ffmpegButtonSD" class="ffmpeg-button resolution-button" disabled>
+                Render MP4 480p
+                <span id="ffmpegSpinnerSD" class="loading-spinner" style="display: none;"></span>
+            </button>
+            <button id="ffmpegButtonHD" class="ffmpeg-button resolution-button" disabled>
+                Render MP4 720p
+                <span id="ffmpegSpinnerHD" class="loading-spinner" style="display: none;"></span>
+            </button>
+            <button id="ffmpegButtonFullHD" class="ffmpeg-button resolution-button" disabled>
+                Render MP4 1080p
+                <span id="ffmpegSpinnerFullHD" class="loading-spinner" style="display: none;"></span>
+            </button>
+            
+            <button id="ffmpegButtonGIF" class="ffmpeg-button resolution-button" disabled>
+                Render GIF Small
+                <span id="ffmpegSpinnerGIF" class="loading-spinner" style="display: none;"></span>
+            </button>
+        </div>
         
         <div class="footer">
             <div class="footer-links">
@@ -664,6 +779,18 @@
     <script type="module">
         // Import supabase module
         import * as supabaseModule from './src/supabase.js';
+        
+        // Global variables for range selection
+        let isRangeActive = false;
+        let startValue = 0;
+        let endValue = 100;
+        
+        // Format time function - moved to global scope
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
         
         document.addEventListener('DOMContentLoaded', async () => {
             // Get URL parameters - now just the ID
@@ -691,7 +818,7 @@
 
             // Update page title if provided
             if (title) {
-                document.title = `${title} - Meme Viewer`;
+                document.title = `GIFCITY - ${title}`;
             }
 
             const canvas = document.getElementById('renderCanvas');
@@ -810,6 +937,9 @@
             function loadFFmpegScriptsSequentially() {
                 ffmpegSpinner.style.display = 'inline-block';
                 ffmpegButton.disabled = true;
+                ffmpegButtonSD.disabled = true;
+                ffmpegButtonHD.disabled = true;
+                ffmpegButtonFullHD.disabled = true;
                 statusDiv.textContent = 'Starting FFmpeg initialization...';
                 
                 // Step 1: Load the main FFmpeg min script
@@ -886,7 +1016,15 @@
                         statusDiv.textContent = 'All systems go!';
                         ffmpegState.ffmpeg = ffmpeg;
                         ffmpegButton.disabled = false;
+                        ffmpegButtonSD.disabled = false;
+                        ffmpegButtonHD.disabled = false;
+                        ffmpegButtonFullHD.disabled = false;
+                        ffmpegButtonGIF.disabled = false;
                         ffmpegSpinner.style.display = 'none';
+                        ffmpegSpinnerSD.style.display = 'none';
+                        ffmpegSpinnerHD.style.display = 'none';
+                        ffmpegSpinnerFullHD.style.display = 'none';
+                        ffmpegSpinnerGIF.style.display = 'none';
                         return ffmpeg;
                     } catch (error) {
                         console.error('FFmpeg initialization error:', error);
@@ -912,6 +1050,10 @@
                         ffmpegSpinner.style.display = 'none';
                         
                         ffmpegButton.disabled = false;
+                        ffmpegButtonSD.disabled = false;
+                        ffmpegButtonHD.disabled = false;
+                        ffmpegButtonFullHD.disabled = false;
+                        ffmpegButtonGIF.disabled = false;
                         ffmpegButton.textContent = 'Retry FFmpeg Initialization';
                         
                         ffmpegButton.onclick = () => {
@@ -950,6 +1092,87 @@
                     renderWithFFmpeg();
                 } catch (error) {
                     console.error('Could not initialize FFmpeg:', error);
+                }
+            });
+
+            // Add resolution constants
+            const RESOLUTION_TIERS = {
+                SD: { width: 854, height: 480, name: "480p" },
+                HD: { width: 1280, height: 720, name: "720p" },
+                FULL_HD: { width: 1920, height: 1080, name: "1080p" }
+            };
+
+            // Add event listeners for new resolution buttons
+            const ffmpegButtonSD = document.getElementById('ffmpegButtonSD');
+            const ffmpegButtonHD = document.getElementById('ffmpegButtonHD');
+            const ffmpegButtonFullHD = document.getElementById('ffmpegButtonFullHD');
+            const ffmpegButtonGIF = document.getElementById('ffmpegButtonGIF');
+            const ffmpegSpinnerSD = document.getElementById('ffmpegSpinnerSD');
+            const ffmpegSpinnerHD = document.getElementById('ffmpegSpinnerHD');
+            const ffmpegSpinnerFullHD = document.getElementById('ffmpegSpinnerFullHD');
+            const ffmpegSpinnerGIF = document.getElementById('ffmpegSpinnerGIF');
+
+            ffmpegButtonSD.addEventListener('click', async () => {
+                ffmpegSpinnerSD.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderWithFFmpeg(RESOLUTION_TIERS.SD, ffmpegSpinnerSD);
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderWithFFmpeg(RESOLUTION_TIERS.SD, ffmpegSpinnerSD);
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerSD.style.display = 'none';
+                }
+            });
+
+            ffmpegButtonHD.addEventListener('click', async () => {
+                ffmpegSpinnerHD.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderWithFFmpeg(RESOLUTION_TIERS.HD, ffmpegSpinnerHD);
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderWithFFmpeg(RESOLUTION_TIERS.HD, ffmpegSpinnerHD);
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerHD.style.display = 'none';
+                }
+            });
+
+            ffmpegButtonFullHD.addEventListener('click', async () => {
+                ffmpegSpinnerFullHD.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderWithFFmpeg(RESOLUTION_TIERS.FULL_HD, ffmpegSpinnerFullHD);
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderWithFFmpeg(RESOLUTION_TIERS.FULL_HD, ffmpegSpinnerFullHD);
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerFullHD.style.display = 'none';
+                }
+            });
+            
+            ffmpegButtonGIF.addEventListener('click', async () => {
+                ffmpegSpinnerGIF.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF);
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF);
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerGIF.style.display = 'none';
                 }
             });
             
@@ -1271,49 +1494,9 @@
                                 }
 
                                 // Start fetching saved faces
-                                fetchUserFaces().then(facesData => {
-                                    if (facesData.data) {
-                                        // Create a button for each saved face
-                                        facesData.data.forEach(face => {
-                                            if (face.face_path) {
-                                                // Get public URL for the face image
-                                                supabase.storage
-                                                    .from('user_faces')
-                                                    .getPublicUrl(face.face_path)
-                                                    .then(urlData => {
-                                                        const faceButton = document.createElement('img');
-                                                        faceButton.className = 'saved-face-button';
-                                                        faceButton.crossOrigin = 'anonymous';
-                                                        faceButton.src = urlData.publicUrl;
-                                                        
-                                                        // When clicked, use this saved face
-                                                        faceButton.addEventListener('click', () => {
-                                                            // Update the image button with this face
-                                                            imgButton.src = urlData.publicUrl;
-                                                            imgButton.crossOrigin = 'anonymous';
-                                                            
-                                                            // Show delete button
-                                                            deleteBtn.style.display = 'flex';
-                                                            
-                                                            // Update image buttons map
-                                                            imageButtons.set(`${faceId}_${imageName}`, imgButton);
-                                                            
-                                                            // Redraw the frame
-                                                            drawFrame();
-                                                            requestAnimationFrame(drawFrame);
-                                                            
-                                                            // Close the modal
-                                                            document.body.removeChild(modal);
-                                                        });
-                                                        
-                                                        savedFacesContainer.appendChild(faceButton);
-                                                    });
-                                            }
-                                        });
-                                    }
-                                });
-
-                                // Close the modal when clicking outside of it
+                                fetchUserFaces();
+                                
+                                // Add click outside handler to close the modal
                                 document.addEventListener('click', function closeModalOnOutsideClick(e) {
                                     if (!modal.contains(e.target) && e.target !== imgButton) {
                                         // Check if the modal is still in the document before trying to remove it
@@ -1405,8 +1588,28 @@
                                         try {
                                             // Clear the temporary canvas first
                                             tempCtx.clearRect(0, 0, faceSize, faceSize);
-                                            // Draw the face
-                                            tempCtx.drawImage(imageToUse, 0, 0, faceSize, faceSize);
+                                            
+                                            // Respect the aspect ratio of the original image
+                                            const imgWidth = imageToUse.naturalWidth;
+                                            const imgHeight = imageToUse.naturalHeight;
+                                            const imgAspect = imgWidth / imgHeight;
+                                            
+                                            let drawWidth, drawHeight, offsetX = 0, offsetY = 0;
+                                            
+                                            if (imgAspect > 1) {
+                                                // Landscape image - use full width, adjust height
+                                                drawWidth = faceSize;
+                                                drawHeight = faceSize / imgAspect;
+                                                offsetY = (faceSize - drawHeight) / 2; // Center vertically
+                                            } else {
+                                                // Portrait or square image - use full height, adjust width
+                                                drawHeight = faceSize;
+                                                drawWidth = faceSize * imgAspect;
+                                                offsetX = (faceSize - drawWidth) / 2; // Center horizontally
+                                            }
+                                            
+                                            // Draw the face with proper aspect ratio
+                                            tempCtx.drawImage(imageToUse, offsetX, offsetY, drawWidth, drawHeight);
                                         } catch (imgError) {
                                             console.warn(`Failed to draw image for ${faceId}_${imageName}:`, imgError);
                                             // Try to reload the image if it's the default one
@@ -1503,6 +1706,16 @@
                             ctx.shadowOffsetX = 5;
                             ctx.shadowOffsetY = 5;
                             
+                            // Check if watermark should be hidden
+                            const removeWatermark = document.getElementById('removeWatermark')?.checked || false;
+                            
+                            // Set appropriate opacity
+                            if (removeWatermark) {
+                                ctx.globalAlpha = 0; // Hide watermark completely
+                            } else {
+                                ctx.globalAlpha = 1; // Show watermark normally
+                            }
+                            
                             ctx.drawImage(logoImage, 
                                 padding,
                                 canvas.height - logoHeight - padding,
@@ -1533,6 +1746,37 @@
                 controlsContainer.style.flexDirection = 'column';
                 controlsContainer.style.gap = '10px';
                 
+                // Watermark control container
+                const watermarkControlContainer = document.createElement('div');
+                watermarkControlContainer.style.display = 'flex';
+                watermarkControlContainer.style.alignItems = 'center';
+                watermarkControlContainer.style.gap = '10px';
+                watermarkControlContainer.style.marginBottom = '5px';
+                
+                // Create watermark checkbox
+                const watermarkCheckbox = document.createElement('input');
+                watermarkCheckbox.type = 'checkbox';
+                watermarkCheckbox.id = 'removeWatermark';
+                
+                // Create label for the checkbox
+                const watermarkLabel = document.createElement('label');
+                watermarkLabel.htmlFor = 'removeWatermark';
+                watermarkLabel.textContent = 'Remove Watermark';
+                watermarkLabel.style.color = 'white';
+                
+                // Add elements to watermark control container
+                watermarkControlContainer.appendChild(watermarkCheckbox);
+                watermarkControlContainer.appendChild(watermarkLabel);
+                
+                // Add event listener to refresh canvas when checkbox state changes
+                watermarkCheckbox.addEventListener('change', () => {
+                    // Request a new animation frame to redraw the canvas with updated watermark visibility
+                    requestAnimationFrame(drawFrame);
+                });
+                
+                // Add to main controls
+                controlsContainer.appendChild(watermarkControlContainer);
+                
                 // Add time controls container
                 const timeControlsContainer = document.createElement('div');
                 timeControlsContainer.style.display = 'flex';
@@ -1557,12 +1801,7 @@
                 // Insert controls into the existing scrubber container
                 mainScrubberContainer.appendChild(controlsContainer);
                 
-                // Format time function
-                function formatTime(seconds) {
-                    const mins = Math.floor(seconds / 60);
-                    const secs = Math.floor(seconds % 60);
-                    return `${mins}:${secs.toString().padStart(2, '0')}`;
-                }
+                // Format time function is now in global scope
 
                 let seekTimeout = null;
                 let lastSeekTime = 0;
@@ -1638,6 +1877,7 @@
                 video.addEventListener('loadedmetadata', () => {
                     const totalFrames = Math.floor(video.duration * 30);
                     scrubber.max = totalFrames - 1;
+                    scrubber.originalMax = totalFrames - 1; // Store original max
                     timeDisplay.textContent = `0:00 / ${formatTime(video.duration)}`;
                     // Show scrubber container when video is loaded
                     document.querySelector('.scrubber-container').style.display = 'block';
@@ -1675,6 +1915,280 @@
                     // Update the filled part of the slider
                     const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
                     scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    handleSeek(currentFrame / 30);
+                });
+                
+                // Choose Range button functionality
+                const chooseRangeBtn = document.getElementById('chooseRangeBtn');
+                const rangeSliderContainer = document.querySelector('.range-slider-container');
+                const rangeSlider = document.getElementById('rangeSlider');
+                const startHandle = document.getElementById('startHandle');
+                const endHandle = document.getElementById('endHandle');
+                const rangeSelected = document.querySelector('.range-selected');
+                const startValueDisplay = document.getElementById('startValue');
+                const endValueDisplay = document.getElementById('endValue');
+                
+                let isDraggingStart = false;
+                let isDraggingEnd = false;
+                
+                // Show range slider when Choose Range button is clicked
+                chooseRangeBtn.addEventListener('click', () => {
+                    if (rangeSliderContainer.style.display === 'block') {
+                        rangeSliderContainer.style.display = 'none';
+                        isRangeActive = false;
+                        
+                        // Reset original scrubber to full range
+                        scrubber.min = 0;
+                        scrubber.max = scrubber.originalMax || (totalFrames - 1);
+                        
+                        // Update the filled part of the slider for the full range
+                        const percent = (currentFrame / scrubber.max) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                        
+                        // Update the scrubber's appearance
+                        chooseRangeBtn.textContent = "Choose Range";
+                        chooseRangeBtn.style.backgroundColor = "#36B2B7";
+                    } else {
+                        rangeSliderContainer.style.display = 'block';
+                        isRangeActive = true;
+                        
+                        // Initialize range slider with current video duration - always use the original max
+                        const fullRange = parseInt(scrubber.originalMax || scrubber.max) + 1;
+                        
+                        // Reset to full range
+                        startValue = 0;
+                        endValue = fullRange - 1;
+                        
+                        // Set initial positions
+                        updateRangeSlider();
+                        
+                        // Update the scrubber's appearance
+                        chooseRangeBtn.textContent = "Reset Range";
+                        chooseRangeBtn.style.backgroundColor = "#DA3A98";
+                    }
+                });
+                
+                // Update range slider visuals
+                function updateRangeSlider() {
+                    const totalFrames = parseInt(scrubber.originalMax || scrubber.max) + 1; // +1 because max is totalFrames-1
+                    if (totalFrames <= 1) return;
+                    
+                    const startPercent = (startValue / (totalFrames - 1)) * 100;
+                    const endPercent = (endValue / (totalFrames - 1)) * 100;
+                    
+                    startHandle.style.left = `${startPercent}%`;
+                    endHandle.style.left = `${endPercent}%`;
+                    rangeSelected.style.left = `${startPercent}%`;
+                    rangeSelected.style.width = `${endPercent - startPercent}%`;
+                    
+                    // Update time displays
+                    startValueDisplay.textContent = formatTime(startValue / 30);
+                    endValueDisplay.textContent = formatTime(endValue / 30);
+                    
+                    // Update the original scrubber to use the new range
+                    if (isRangeActive) {
+                        // Update scrubber min and max to match the range
+                        scrubber.min = startValue;
+                        scrubber.max = endValue;
+                        
+                        // If current frame is outside the range, adjust it to stay within range
+                        if (currentFrame < startValue) {
+                            currentFrame = startValue;
+                            scrubber.value = currentFrame;
+                            handleSeek(currentFrame / 30);
+                        } else if (currentFrame > endValue) {
+                            currentFrame = endValue;
+                            scrubber.value = currentFrame;
+                            handleSeek(currentFrame / 30);
+                        }
+                        
+                        // Update the filled part of the slider
+                        const percent = ((currentFrame - startValue) / (endValue - startValue)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    }
+                }
+                
+                // Completely rewritten handle drag functionality
+                function setupHandleDrag() {
+                    // Function to handle the dragging logic
+                    function handleDrag(e, isStart) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const totalFrames = parseInt(scrubber.originalMax || scrubber.max) + 1;
+                        if (totalFrames <= 1) return;
+                        
+                        // Get mouse or touch position
+                        let clientX;
+                        if (e.type.includes('mouse')) {
+                            clientX = e.clientX;
+                        } else if (e.type.includes('touch')) {
+                            clientX = e.touches[0].clientX;
+                        } else {
+                            return;
+                        }
+                        
+                        const sliderRect = rangeSlider.getBoundingClientRect();
+                        const sliderWidth = sliderRect.width;
+                        const offsetX = clientX - sliderRect.left;
+                        
+                        // Calculate percentage and frame value
+                        let percent = Math.max(0, Math.min(100, (offsetX / sliderWidth) * 100));
+                        let frameValue = Math.round((percent / 100) * (totalFrames - 1));
+                        
+                        if (isStart) {
+                            // Ensure start handle doesn't go beyond end handle
+                            if (frameValue >= endValue) {
+                                frameValue = endValue - 1;
+                            }
+                            startValue = frameValue;
+                            
+                            // If current frame is now less than start, adjust it
+                            if (currentFrame < startValue) {
+                                currentFrame = startValue;
+                                scrubber.value = currentFrame;
+                                handleSeek(currentFrame / 30);
+                            }
+                        } else {
+                            // Ensure end handle doesn't go before start handle
+                            if (frameValue <= startValue) {
+                                frameValue = startValue + 1;
+                            }
+                            endValue = frameValue;
+                            
+                            // If current frame is now greater than end, adjust it
+                            if (currentFrame > endValue) {
+                                currentFrame = endValue;
+                                scrubber.value = currentFrame;
+                                handleSeek(currentFrame / 30);
+                            }
+                        }
+                        
+                        updateRangeSlider();
+                    }
+                    
+                    // Start handle events
+                    startHandle.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        function moveHandler(e) {
+                            handleDrag(e, true);
+                        }
+                        
+                        function upHandler() {
+                            document.removeEventListener('mousemove', moveHandler);
+                            document.removeEventListener('mouseup', upHandler);
+                        }
+                        
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', upHandler);
+                    });
+                    
+                    // End handle events
+                    endHandle.addEventListener('mousedown', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        function moveHandler(e) {
+                            handleDrag(e, false);
+                        }
+                        
+                        function upHandler() {
+                            document.removeEventListener('mousemove', moveHandler);
+                            document.removeEventListener('mouseup', upHandler);
+                        }
+                        
+                        document.addEventListener('mousemove', moveHandler);
+                        document.addEventListener('mouseup', upHandler);
+                    });
+                    
+                    // Touch events for mobile
+                    startHandle.addEventListener('touchstart', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        function moveHandler(e) {
+                            handleDrag(e, true);
+                        }
+                        
+                        function upHandler() {
+                            document.removeEventListener('touchmove', moveHandler);
+                            document.removeEventListener('touchend', upHandler);
+                        }
+                        
+                        document.addEventListener('touchmove', moveHandler);
+                        document.addEventListener('touchend', upHandler);
+                    });
+                    
+                    endHandle.addEventListener('touchstart', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        function moveHandler(e) {
+                            handleDrag(e, false);
+                        }
+                        
+                        function upHandler() {
+                            document.removeEventListener('touchmove', moveHandler);
+                            document.removeEventListener('touchend', upHandler);
+                        }
+                        
+                        document.addEventListener('touchmove', moveHandler);
+                        document.addEventListener('touchend', upHandler);
+                    });
+                }
+                
+                // Initialize the handle drag functionality
+                setupHandleDrag();
+                
+                // Seek to start position when clicking on start value display
+                startValueDisplay.addEventListener('click', () => {
+                    currentFrame = startValue;
+                    scrubber.value = currentFrame;
+                    
+                    // Update the filled part of the slider based on range
+                    if (isRangeActive) {
+                        const percent = ((currentFrame - startValue) / (endValue - startValue)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    } else {
+                        const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    }
+                    
+                    handleSeek(currentFrame / 30);
+                });
+                
+                // Seek to end position when clicking on end value display
+                endValueDisplay.addEventListener('click', () => {
+                    currentFrame = endValue;
+                    scrubber.value = currentFrame;
+                    
+                    // Update the filled part of the slider based on range
+                    if (isRangeActive) {
+                        const percent = ((currentFrame - startValue) / (endValue - startValue)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    } else {
+                        const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    }
+                    
+                    handleSeek(currentFrame / 30);
+                });
+                
+                // Modify the scrubber input event to work with the range
+                scrubber.addEventListener('input', () => {
+                    currentFrame = parseInt(scrubber.value);
+                    
+                    // Update the filled part of the slider based on range
+                    if (isRangeActive) {
+                        const percent = ((currentFrame - startValue) / (endValue - startValue)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    } else {
+                        const percent = (currentFrame / (scrubber.originalMax || scrubber.max)) * 100;
+                        scrubber.style.setProperty('--value-percent', `${percent}%`);
+                    }
+                    
                     handleSeek(currentFrame / 30);
                 });
             }
@@ -1828,24 +2342,72 @@
                 requestAnimationFrame(step);
             });
 
-            // Function to handle FFmpeg rendering
-            async function renderWithFFmpeg() {
+            // Function to render video with FFmpeg
+            async function renderWithFFmpeg(resolution = RESOLUTION_TIERS.FULL_HD, spinner = ffmpegSpinner) {
                 const ffmpeg = ffmpegState.ffmpeg;
-                statusDiv.textContent = 'Capturing frames...';
+                statusDiv.textContent = `Capturing frames for ${resolution.name} video...`;
                 
-                // Reset video to start
-                video.currentTime = 0;
+                // Disable all buttons during rendering
+                ffmpegButton.disabled = true;
+                ffmpegButtonSD.disabled = true;
+                ffmpegButtonHD.disabled = true;
+                ffmpegButtonFullHD.disabled = true;
+                ffmpegButtonGIF.disabled = true;
+                
+                // Determine the frame range to render
+                let startFrame = 0;
+                let endFrame = Math.floor(video.duration * 30) - 1;
+                let totalFramesToRender;
+                
+                // If range selection is active, use the selected range
+                if (isRangeActive) {
+                    startFrame = startValue;
+                    endFrame = endValue;
+                    statusDiv.textContent = `Capturing frames for ${resolution.name} video (selected range only)...`;
+                }
+                
+                totalFramesToRender = endFrame - startFrame + 1;
+                
+                // Reset video to start of the range
+                video.currentTime = startFrame / 30;
                 await new Promise(resolve => video.addEventListener('seeked', resolve, { once: true }));
                 
-                const frames = [];
-                const totalFrames = Math.floor(video.duration * 30);
+                // Calculate aspect ratio-preserving dimensions
+                const originalAspectRatio = video.videoWidth / video.videoHeight;
+                let targetWidth, targetHeight;
                 
-                // Function to capture a single frame
+                if (originalAspectRatio >= 1) {
+                    // Landscape or square video
+                    targetWidth = resolution.width;
+                    targetHeight = Math.round(resolution.width / originalAspectRatio);
+                } else {
+                    // Portrait video
+                    targetHeight = resolution.height;
+                    targetWidth = Math.round(resolution.height * originalAspectRatio);
+                }
+                
+                console.log(`Original video: ${video.videoWidth}x${video.videoHeight}, aspect ratio: ${originalAspectRatio}`);
+                console.log(`Target resolution: ${targetWidth}x${targetHeight}`);
+                
+                // Create an offscreen canvas for resizing
+                const offscreenCanvas = document.createElement('canvas');
+                offscreenCanvas.width = targetWidth;
+                offscreenCanvas.height = targetHeight;
+                const offscreenCtx = offscreenCanvas.getContext('2d');
+                
+                // Function to capture a single frame with resolution
                 function captureFrame() {
                     drawFrame();
                     return new Promise(resolve => {
                         requestAnimationFrame(() => {
-                            canvas.toBlob(blob => {
+                            // Draw to main canvas first
+                            drawFrame();
+                            
+                            // Then resize to the target resolution
+                            offscreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, targetWidth, targetHeight);
+                            
+                            // Get blob from the resized canvas
+                            offscreenCanvas.toBlob(blob => {
                                 frames.push(blob);
                                 resolve();
                             }, 'image/jpeg', 0.95);
@@ -1853,10 +2415,16 @@
                     });
                 }
 
+                const frames = [];
+                let audioContext = null;
+                let audioSource = null;
+
                 try {
                     // Capture all frames with proper timing
-                    for (let i = 0; i < totalFrames; i++) {
-                        video.currentTime = i / 30;
+                    for (let i = 0; i < totalFramesToRender; i++) {
+                        const frameIndex = startFrame + i;
+                        video.currentTime = frameIndex / 30;
+                        
                         // Wait for the video to actually seek to the new time
                         await new Promise(resolve => {
                             const onSeeked = () => {
@@ -1865,28 +2433,25 @@
                             };
                             video.addEventListener('seeked', onSeeked);
                         });
+                        
                         // Wait for the next frame to be rendered
                         await new Promise(resolve => requestAnimationFrame(resolve));
                         await captureFrame();
                         
                         // Update progress
-                        statusDiv.textContent = `Capturing frames: ${Math.floor((i / totalFrames) * 100)}%`;
+                        statusDiv.textContent = `Capturing frames for ${resolution.name} video: ${Math.floor((i / totalFramesToRender) * 100)}%`;
                     }
 
-                    statusDiv.textContent = 'Processing frames with FFmpeg...';
+                    statusDiv.textContent = 'Processing video with FFmpeg...';
 
                     // Write frames to FFmpeg filesystem
                     for (let i = 0; i < frames.length; i++) {
                         const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
                         const frameData = new Uint8Array(await frames[i].arrayBuffer());
                         ffmpeg.FS('writeFile', frameName, frameData);
-                        
-                        if (i % 30 === 0) {
-                            console.log(`Writing frame ${i} of ${frames.length}`);
-                        }
                     }
 
-                    // Clean up any existing audio connections more thoroughly
+                    // Clean up any existing audio connections
                     if (audioSource) {
                         audioSource.disconnect();
                         audioSource = null;
@@ -1895,18 +2460,14 @@
                         await audioContext.close();
                         audioContext = null;
                     }
-                    
-                    // Create a completely new video element for audio extraction
+
+                    // Create a new video element for audio extraction
                     const tempVideo = document.createElement('video');
                     tempVideo.crossOrigin = 'anonymous';
                     
-                    // Fetch the video again with proper CORS settings
-                    const audioResponse = await fetch(videoUrl, {
-                        mode: 'cors',
-                        credentials: 'omit'  // Change from 'include' to 'omit'
-                    });
-                    const rawAudioBlob = await audioResponse.blob();
-                    const audioBlobUrl = URL.createObjectURL(rawAudioBlob);
+                    // Get the video URL
+                    const videoSrc = video.src;
+                    const audioBlobUrl = videoSrc;
                     tempVideo.src = audioBlobUrl;
                     tempVideo.muted = false;
                     tempVideo.volume = 1.0;
@@ -1932,10 +2493,28 @@
                     mediaRecorder.start();
                     
                     // Play the temp video to extract audio
-                    tempVideo.currentTime = 0;
+                    tempVideo.currentTime = startFrame / 30;  // Start from the selected range
+                    
+                    // Set the playbackRate to normal (1.0)
+                    tempVideo.playbackRate = 1.0;
+                    
+                    // Calculate the duration of the selected range in seconds
+                    const rangeDuration = (endFrame - startFrame + 1) / 30;
+                    
+                    // Play the video for the duration of the selected range
                     await new Promise(resolve => {
-                        tempVideo.onended = resolve;
-                        tempVideo.play();
+                        const checkTime = () => {
+                            if (tempVideo.currentTime >= (startFrame / 30) + rangeDuration) {
+                                tempVideo.pause();
+                                resolve();
+                            } else {
+                                requestAnimationFrame(checkTime);
+                            }
+                        };
+                        
+                        tempVideo.play().then(() => {
+                            checkTime();
+                        });
                     });
                     
                     mediaRecorder.stop();
@@ -1967,6 +2546,7 @@
                         '-i', 'audio.webm',
                         // Output options
                         '-c:v', 'libx264',
+                        '-s', `${targetWidth}x${targetHeight}`, // Set the exact dimensions
                         '-pix_fmt', 'yuv420p',
                         '-preset', 'medium',
                         '-crf', '23',
@@ -1992,7 +2572,16 @@
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
                     a.href = url;
-                    a.download = 'meme_ffmpeg.mp4';
+                    
+                    // Add range info to filename if range is active
+                    let filename = `meme_ffmpeg_${targetWidth}x${targetHeight}_${resolution.name}`;
+                    if (isRangeActive) {
+                        const startTimeStr = formatTime(startFrame / 30).replace(':', 'm') + 's';
+                        const endTimeStr = formatTime(endFrame / 30).replace(':', 'm') + 's';
+                        filename += `_range_${startTimeStr}-${endTimeStr}`;
+                    }
+                    a.download = `${filename}.mp4`;
+                    
                     document.body.appendChild(a);
                     a.click();
                     
@@ -2002,7 +2591,13 @@
                         URL.revokeObjectURL(url);
                     }, 100);
 
-                    statusDiv.textContent = `FFmpeg export complete! File size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+                    statusDiv.textContent = `FFmpeg export complete! ${targetWidth}x${targetHeight} (${resolution.name}) file size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+                    ffmpegButton.disabled = false;
+                    ffmpegButtonSD.disabled = false;
+                    ffmpegButtonHD.disabled = false;
+                    ffmpegButtonFullHD.disabled = false;
+                    ffmpegButtonGIF.disabled = false;
+                    spinner.style.display = 'none';
 
                 } catch (error) {
                     // Clean up audio on error
@@ -2016,6 +2611,204 @@
                     }
                     console.error('FFmpeg processing error:', error);
                     statusDiv.textContent = 'FFmpeg processing failed: ' + error.message;
+                    
+                    // Re-enable all buttons and hide spinner
+                    ffmpegButton.disabled = false;
+                    ffmpegButtonSD.disabled = false;
+                    ffmpegButtonHD.disabled = false;
+                    ffmpegButtonFullHD.disabled = false;
+                    ffmpegButtonGIF.disabled = false;
+                    spinner.style.display = 'none';
+                }
+            }
+
+            // Function to render GIF with FFmpeg
+            async function renderAsGIF(resolution = RESOLUTION_TIERS.SD, spinner = ffmpegSpinnerGIF) {
+                const ffmpeg = ffmpegState.ffmpeg;
+                statusDiv.textContent = `Capturing frames for small GIF...`;
+                
+                // Disable all buttons during rendering
+                ffmpegButton.disabled = true;
+                ffmpegButtonSD.disabled = true;
+                ffmpegButtonHD.disabled = true;
+                ffmpegButtonFullHD.disabled = true;
+                ffmpegButtonGIF.disabled = true;
+                
+                // Determine the frame range to render
+                let startFrame = 0;
+                let endFrame = Math.floor(video.duration * 30) - 1;
+                
+                // If range selection is active, use the selected range
+                if (isRangeActive) {
+                    startFrame = startValue;
+                    endFrame = endValue;
+                    statusDiv.textContent = `Capturing frames for small GIF (selected range only)...`;
+                }
+                
+                // For GIF capture every 4th frame to reduce size (7.5fps from 30fps source)
+                const frameStep = 4;
+                const totalFramesToCapture = Math.floor((endFrame - startFrame + 1));
+                const totalGifFrames = Math.floor(totalFramesToCapture / frameStep);
+                
+                // Reset video to start of the range
+                video.currentTime = startFrame / 30;
+                await new Promise(resolve => video.addEventListener('seeked', resolve, { once: true }));
+                
+                const frames = [];
+                
+                // Calculate aspect ratio-preserving dimensions at half the size of 480p
+                const originalAspectRatio = video.videoWidth / video.videoHeight;
+                let targetWidth, targetHeight;
+                
+                // Use half the resolution of SD (480p)
+                const smallResolution = {
+                    width: Math.floor(resolution.width / 2),
+                    height: Math.floor(resolution.height / 2),
+                    name: "Small"
+                };
+                
+                if (originalAspectRatio >= 1) {
+                    // Landscape or square video
+                    targetWidth = smallResolution.width;
+                    targetHeight = Math.round(smallResolution.width / originalAspectRatio);
+                } else {
+                    // Portrait video
+                    targetHeight = smallResolution.height;
+                    targetWidth = Math.round(smallResolution.height * originalAspectRatio);
+                }
+                
+                console.log(`Original video: ${video.videoWidth}x${video.videoHeight}, aspect ratio: ${originalAspectRatio}`);
+                console.log(`Target GIF resolution: ${targetWidth}x${targetHeight}`);
+                
+                // Create an offscreen canvas for resizing
+                const offscreenCanvas = document.createElement('canvas');
+                offscreenCanvas.width = targetWidth;
+                offscreenCanvas.height = targetHeight;
+                const offscreenCtx = offscreenCanvas.getContext('2d');
+                
+                // Function to capture a single frame with resolution
+                function captureFrame() {
+                    drawFrame();
+                    return new Promise(resolve => {
+                        requestAnimationFrame(() => {
+                            // Draw to main canvas first
+                            drawFrame();
+                            
+                            // Then resize to the target resolution
+                            offscreenCtx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, targetWidth, targetHeight);
+                            
+                            // Get blob from the resized canvas
+                            offscreenCanvas.toBlob(blob => {
+                                frames.push(blob);
+                                resolve();
+                            }, 'image/jpeg', 0.95);
+                        });
+                    });
+                }
+
+                try {
+                    // Capture frames with frameStep for GIF (reduced framerate)
+                    for (let i = 0; i < totalFramesToCapture; i += frameStep) {
+                        const frameIndex = startFrame + i;
+                        video.currentTime = frameIndex / 30;
+                        
+                        // Wait for the video to actually seek to the new time
+                        await new Promise(resolve => {
+                            const onSeeked = () => {
+                                video.removeEventListener('seeked', onSeeked);
+                                resolve();
+                            };
+                            video.addEventListener('seeked', onSeeked);
+                        });
+                        
+                        // Wait for the next frame to be rendered
+                        await new Promise(resolve => requestAnimationFrame(resolve));
+                        await captureFrame();
+                        
+                        // Update progress
+                        const progress = Math.floor((i / totalFramesToCapture) * 100);
+                        statusDiv.textContent = `Capturing frames for small GIF: ${progress}%`;
+                    }
+
+                    statusDiv.textContent = 'Creating GIF with FFmpeg...';
+
+                    // Write frames to FFmpeg filesystem
+                    for (let i = 0; i < frames.length; i++) {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        const frameData = new Uint8Array(await frames[i].arrayBuffer());
+                        ffmpeg.FS('writeFile', frameName, frameData);
+                        
+                        if (i % 10 === 0) {
+                            console.log(`Writing frame ${i} of ${frames.length}`);
+                        }
+                    }
+
+                    // Use FFmpeg to create the GIF
+                    await ffmpeg.run(
+                        // Input frames
+                        '-framerate', '7.5',
+                        '-pattern_type', 'sequence',
+                        '-i', 'frame%04d.jpg',
+                        // GIF settings
+                        '-vf', `scale=${targetWidth}:${targetHeight}:flags=lanczos,split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse=dither=sierra2_4a`,
+                        // Output file
+                        'output.gif'
+                    );
+
+                    // Read the output file
+                    const data = ffmpeg.FS('readFile', 'output.gif');
+
+                    // Clean up files
+                    frames.forEach((_, i) => {
+                        const frameName = `frame${i.toString().padStart(4, '0')}.jpg`;
+                        ffmpeg.FS('unlink', frameName);
+                    });
+                    ffmpeg.FS('unlink', 'output.gif');
+
+                    // Create download link
+                    const blob = new Blob([data.buffer], { type: 'image/gif' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    
+                    // Add range info to filename if range is active
+                    let filename = `meme_gif_${targetWidth}x${targetHeight}_small`;
+                    if (isRangeActive) {
+                        const startTimeStr = formatTime(startFrame / 30).replace(':', 'm') + 's';
+                        const endTimeStr = formatTime(endFrame / 30).replace(':', 'm') + 's';
+                        filename += `_range_${startTimeStr}-${endTimeStr}`;
+                    }
+                    a.download = `${filename}.gif`;
+                    
+                    document.body.appendChild(a);
+                    a.click();
+                    
+                    // Clean up
+                    setTimeout(() => {
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                    }, 100);
+
+                    statusDiv.textContent = `GIF creation complete! ${targetWidth}x${targetHeight} (Small) file size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+                    
+                    // Re-enable all buttons
+                    ffmpegButton.disabled = false;
+                    ffmpegButtonSD.disabled = false;
+                    ffmpegButtonHD.disabled = false;
+                    ffmpegButtonFullHD.disabled = false;
+                    ffmpegButtonGIF.disabled = false;
+                    spinner.style.display = 'none';
+                } catch (error) {
+                    console.error('GIF processing error:', error);
+                    statusDiv.textContent = 'GIF processing failed: ' + error.message;
+                    
+                    // Re-enable all buttons
+                    ffmpegButton.disabled = false;
+                    ffmpegButtonSD.disabled = false;
+                    ffmpegButtonHD.disabled = false;
+                    ffmpegButtonFullHD.disabled = false;
+                    ffmpegButtonGIF.disabled = false;
+                    spinner.style.display = 'none';
                 }
             }
         });
