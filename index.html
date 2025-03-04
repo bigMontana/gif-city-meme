@@ -45,6 +45,49 @@
             border-bottom: 1px solid #36B2B7;
         }
 
+        /* New styles for the meme equation container */
+        .meme-equation {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 20px 20px 0;
+            gap: 2%;
+            width: calc(100% - 40px);
+        }
+
+        .meme-image {
+            width: 26%;
+            aspect-ratio: auto;
+            background-color: #222;
+            border-radius: 6px;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .meme-image img {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        /* Remove background from the first meme-image (face1) */
+        .meme-image:first-child {
+            background-color: transparent;
+        }
+
+        .meme-operator {
+            width: 8%;
+            font-size: clamp(24px, 4vw, 36px);
+            color: #DA3A98;
+            font-weight: bold;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
         .logo {
             font-size: 38px;  /* Increased font size for better VT323 display */
             font-weight: 600;
@@ -260,6 +303,314 @@
                 flex: 0 0 100%;
             }
         }
+
+        /* Media query for smaller screens */
+        @media (max-width: 768px) {
+            .meme-equation {
+                gap: 10px;
+            }
+            
+            .meme-image {
+                width: 28%;
+            }
+            
+            .meme-operator {
+                width: 8%;
+                font-size: clamp(18px, 3vw, 28px);
+            }
+        }
+
+        /* Media query for mobile screens */
+        @media (max-width: 480px) {
+            .meme-equation {
+                flex-wrap: wrap;
+                justify-content: space-around;
+            }
+            
+            .meme-image {
+                width: 40%;
+                margin-bottom: 10px;
+            }
+            
+            .meme-operator {
+                width: 20%;
+                font-size: clamp(16px, 6vw, 24px);
+            }
+            
+            /* Special layout for mobile - put the result on new line */
+            .meme-image:nth-child(5) {
+                width: 60%;
+                margin-top: 10px;
+            }
+        }
+
+        /* Pricing Tiers Container Styles */
+        .pricing-container {
+            margin: 50px 20px 0;
+            padding: 20px 0;
+        }
+
+        .pricing-title {
+            text-align: center;
+            font-size: 36px;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .pricing-tiers {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: nowrap;
+        }
+
+        .pricing-card {
+            background-color: #1a1a1a;
+            border-radius: 8px;
+            padding: 25px;
+            width: 100%;
+            max-width: 330px;
+            border: 1px solid #333;
+            position: relative;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .pricing-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Free tier specific styles */
+        .pricing-card.free {
+            background-color: #1a1a1a;
+            border-color: #292929;
+        }
+        
+        .pricing-card.free:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .pricing-card.premium {
+            border-color: #36B2B7;
+            background-color: #1c1c1c;
+        }
+
+        .bundle-tag {
+            position: absolute;
+            top: -12px;
+            right: 20px;
+            background-color: #4CAF50;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .tier-header {
+            margin-bottom: 20px;
+        }
+
+        .tier-header h3 {
+            font-size: 32px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .price {
+            display: flex;
+            align-items: baseline;
+            margin-bottom: 10px;
+        }
+
+        .original-price {
+            color: #888;
+            font-size: 20px;
+            text-decoration: line-through;
+            margin-right: 10px;
+        }
+
+        .current-price {
+            color: white;
+            font-size: 42px;
+            font-weight: bold;
+        }
+
+        .currency {
+            color: #888;
+            font-size: 18px;
+            margin-left: 5px;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 25px 0;
+            padding: 0;
+        }
+
+        .features-list li {
+            margin-bottom: 12px;
+            padding-left: 30px;
+            position: relative;
+            font-size: 18px;
+        }
+
+        .feature-included::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #36B2B7;
+            font-weight: bold;
+        }
+
+        .feature-excluded {
+            color: #888;
+        }
+
+        .feature-excluded::before {
+            content: "✗";
+            position: absolute;
+            left: 0;
+            color: #888;
+        }
+
+        .update-badge {
+            background-color: #444;
+            font-size: 14px;
+            padding: 2px 10px;
+            border-radius: 20px;
+            margin-left: 10px;
+            color: #36B2B7;
+        }
+
+        .btn-get-shipfast, .btn-get-bundle {
+            width: 100%;
+            padding: 15px 0;
+            border: none;
+            border-radius: 5px;
+            background-color: #DA3A98;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: background-color 0.2s;
+        }
+
+        .btn-get-bundle {
+            background-color: #36B2B7;
+        }
+
+        .btn-get-shipfast:hover {
+            background-color: #c4327f;
+        }
+
+        .btn-get-bundle:hover {
+            background-color: #2d989d;
+        }
+
+        .lightning-icon {
+            margin-right: 8px;
+        }
+
+        .pricing-footer {
+            text-align: center;
+            color: #888;
+            margin-top: 15px;
+            font-size: 16px;
+        }
+
+        .tier-description {
+            color: #aaa;
+            font-size: 20px;
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .codefast-section {
+            background-color: #222;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .codefast-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .code-icon {
+            background-color: #36B2B7;
+            color: black;
+            border-radius: 5px;
+            width: 30px;
+            height: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-right: 10px;
+            font-weight: bold;
+        }
+
+        .codefast-header h4 {
+            font-size: 22px;
+            color: white;
+            margin: 0;
+        }
+
+        .codefast-section p {
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .codefast-features {
+            list-style: none;
+            margin: 15px 0;
+            padding: 0;
+        }
+
+        .codefast-features li {
+            margin-bottom: 8px;
+            padding-left: 20px;
+            position: relative;
+            color: white;
+        }
+
+        .codefast-features li::before {
+            content: "•";
+            position: absolute;
+            left: 0;
+            color: #36B2B7;
+        }
+
+        .students-avatars {
+            display: flex;
+            align-items: center;
+            margin-top: 15px;
+        }
+
+        .students-avatars p {
+            color: #aaa;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        /* Responsive styles for pricing tiers */
+        @media (max-width: 1000px) {
+            .pricing-tiers {
+                flex-direction: column;
+                align-items: center;
+                gap: 40px;
+                flex-wrap: wrap;
+            }
+            
+            .pricing-card {
+                max-width: 400px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -296,6 +647,21 @@
             </div>
         </div>
 
+        <!-- Meme Equation Container -->
+        <div class="meme-equation">
+            <div class="meme-image">
+                <img src="/src/assets/images/face.png" alt="Face 1">
+            </div>
+            <div class="meme-operator">+</div>
+            <div class="meme-image">
+                <img src="/src/assets/images/gif_blank.gif" alt="Face 2">
+            </div>
+            <div class="meme-operator">=</div>
+            <div class="meme-image">
+                <img src="/src/assets/images/gif_face.gif" alt="Result">
+            </div>
+        </div>
+
         <div class="search-container">
             <input type="text" class="search-input" placeholder="Search templates...">
             <button class="search-btn">🔍</button>
@@ -313,6 +679,101 @@
         <div class="gallery-container">
             <div class="gallery" id="templateGallery">
                 <!-- Templates will be loaded here -->
+            </div>
+        </div>
+
+        <!-- Pricing Tiers Container -->
+        <div class="pricing-container">
+            <h2 class="pricing-title">Choose Your Membership</h2>
+            <div class="pricing-tiers">
+                <!-- Free Tier (formerly Starter Tier) -->
+                <div class="pricing-card free">
+                    <div class="tier-header">
+                        <h3>Free</h3>
+                        <div class="price">
+                            <span class="current-price">$0</span>
+                            <span class="currency">USD</span>
+                        </div>
+                    </div>
+                    <ul class="features-list">
+                        <li class="feature-included">NextJS boilerplate</li>
+                        <li class="feature-included">SEO & Blog</li>
+                        <li class="feature-included">Mailgun emails</li>
+                        <li class="feature-included">Stripe / Lemon Squeezy</li>
+                        <li class="feature-included">MongoDB / Supabase</li>
+                        <li class="feature-included">Google OAuth & Magic Links</li>
+                        <li class="feature-included">Components & animations</li>
+                        <li class="feature-included">ChatGPT prompts for terms & privacy</li>
+                        <li class="feature-excluded">Discord community & Leaderboard</li>
+                        <li class="feature-excluded">$1,210 worth of discounts</li>
+                        <li class="feature-excluded">Lifetime updates</li>
+                    </ul>
+                    <p class="pricing-footer" style="margin-top: 60px;">Default tier for all users</p>
+                </div>
+
+                <!-- All-in Tier -->
+                <div class="pricing-card">
+                    <div class="tier-header">
+                        <h3>All-in</h3>
+                        <div class="price">
+                            <span class="original-price">$349</span>
+                            <span class="current-price">$249</span>
+                            <span class="currency">USD</span>
+                        </div>
+                    </div>
+                    <ul class="features-list">
+                        <li class="feature-included">NextJS boilerplate</li>
+                        <li class="feature-included">SEO & Blog</li>
+                        <li class="feature-included">Mailgun emails</li>
+                        <li class="feature-included">Stripe / Lemon Squeezy</li>
+                        <li class="feature-included">MongoDB / Supabase</li>
+                        <li class="feature-included">Google OAuth & Magic Links</li>
+                        <li class="feature-included">Components & animations</li>
+                        <li class="feature-included">ChatGPT prompts for terms & privacy</li>
+                        <li class="feature-included">Discord community & Leaderboard</li>
+                        <li class="feature-included">$1,210 worth of discounts</li>
+                        <li class="feature-included">Lifetime updates<span class="update-badge">Updated 1 month ago</span></li>
+                    </ul>
+                    <button class="btn-get-shipfast">
+                        <span class="lightning-icon">⚡</span> Get ShipFast
+                    </button>
+                    <p class="pricing-footer">Pay once. Build unlimited projects!</p>
+                </div>
+
+                <!-- ShipFast + CodeFast Bundle Tier -->
+                <div class="pricing-card premium">
+                    <div class="bundle-tag">BUNDLE</div>
+                    <div class="tier-header">
+                        <h3>ShipFast + CodeFast</h3>
+                        <div class="price">
+                            <span class="original-price">$648</span>
+                            <span class="current-price">$299</span>
+                            <span class="currency">USD</span>
+                        </div>
+                    </div>
+                    <div class="tier-description">
+                        <p>Everything in All-in, and...</p>
+                    </div>
+                    <div class="codefast-section">
+                        <div class="codefast-header">
+                            <span class="code-icon">&#60;/&#62;</span>
+                            <h4>CodeFast ($299 value)</h4>
+                        </div>
+                        <p>Learn to code in weeks, not months</p>
+                        <ul class="codefast-features">
+                            <li>12 hours of content</li>
+                            <li>Build a SaaS from 0</li>
+                            <li>Entrepreneur mindset</li>
+                        </ul>
+                        <div class="students-avatars">
+                            <p>1,000+ students love CodeFast</p>
+                        </div>
+                    </div>
+                    <button class="btn-get-bundle">
+                        Get ShipFast + CodeFast
+                    </button>
+                    <p class="pricing-footer">Pay once. Build unlimited projects!</p>
+                </div>
             </div>
         </div>
 

@@ -680,6 +680,16 @@
             margin: 20px auto;
         }
         
+        /* Add styles for the GIF buttons row */
+        .gif-buttons-row {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin: 10px auto;
+            width: 100%;
+        }
+        
         .resolution-button {
             background-color: #DA3A98; /* Pink color for the resolution buttons */
             flex: 1;
@@ -785,10 +795,21 @@
                 <span id="ffmpegSpinnerFullHD" class="loading-spinner" style="display: none;"></span>
             </button>
             
-            <button id="ffmpegButtonGIF" class="ffmpeg-button resolution-button" disabled>
-                Render GIF Small
-                <span id="ffmpegSpinnerGIF" class="loading-spinner" style="display: none;"></span>
-            </button>
+            <!-- GIF render buttons in their own row -->
+            <div class="gif-buttons-row">
+                <button id="ffmpegButtonGIF" class="ffmpeg-button resolution-button" disabled>
+                    Render GIF Small
+                    <span id="ffmpegSpinnerGIF" class="loading-spinner" style="display: none;"></span>
+                </button>
+                <button id="ffmpegButtonGIFMed" class="ffmpeg-button resolution-button" disabled>
+                    Render GIF Med
+                    <span id="ffmpegSpinnerGIFMed" class="loading-spinner" style="display: none;"></span>
+                </button>
+                <button id="ffmpegButtonGIFLarge" class="ffmpeg-button resolution-button" disabled>
+                    Render GIF Large
+                    <span id="ffmpegSpinnerGIFLarge" class="loading-spinner" style="display: none;"></span>
+                </button>
+            </div>
         </div>
         
         <div class="footer">
@@ -969,6 +990,9 @@
                 ffmpegButtonSD.disabled = true;
                 ffmpegButtonHD.disabled = true;
                 ffmpegButtonFullHD.disabled = true;
+                ffmpegButtonGIF.disabled = true;
+                ffmpegButtonGIFMed.disabled = true;
+                ffmpegButtonGIFLarge.disabled = true;
                 statusDiv.textContent = 'Starting FFmpeg initialization...';
                 
                 // Step 1: Load the main FFmpeg min script
@@ -1049,11 +1073,15 @@
                         ffmpegButtonHD.disabled = false;
                         ffmpegButtonFullHD.disabled = false;
                         ffmpegButtonGIF.disabled = false;
+                        ffmpegButtonGIFMed.disabled = false;
+                        ffmpegButtonGIFLarge.disabled = false;
                         ffmpegSpinner.style.display = 'none';
                         ffmpegSpinnerSD.style.display = 'none';
                         ffmpegSpinnerHD.style.display = 'none';
                         ffmpegSpinnerFullHD.style.display = 'none';
                         ffmpegSpinnerGIF.style.display = 'none';
+                        ffmpegSpinnerGIFMed.style.display = 'none';
+                        ffmpegSpinnerGIFLarge.style.display = 'none';
                         return ffmpeg;
                     } catch (error) {
                         console.error('FFmpeg initialization error:', error);
@@ -1083,6 +1111,8 @@
                         ffmpegButtonHD.disabled = false;
                         ffmpegButtonFullHD.disabled = false;
                         ffmpegButtonGIF.disabled = false;
+                        ffmpegButtonGIFMed.disabled = false;
+                        ffmpegButtonGIFLarge.disabled = false;
                         ffmpegButton.textContent = 'Retry FFmpeg Initialization';
                         
                         ffmpegButton.onclick = () => {
@@ -1192,16 +1222,49 @@
             ffmpegButtonGIF.addEventListener('click', async () => {
                 ffmpegSpinnerGIF.style.display = 'inline-block';
                 if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
-                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF);
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF, 'small');
                     return;
                 }
                 
                 try {
                     await loadFFmpegScriptsSequentially();
-                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF);
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIF, 'small');
                 } catch (error) {
                     console.error('Could not initialize FFmpeg:', error);
                     ffmpegSpinnerGIF.style.display = 'none';
+                }
+            });
+            
+            // Add event listeners for the new GIF buttons
+            ffmpegButtonGIFMed.addEventListener('click', async () => {
+                ffmpegSpinnerGIFMed.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIFMed, 'medium');
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIFMed, 'medium');
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerGIFMed.style.display = 'none';
+                }
+            });
+            
+            ffmpegButtonGIFLarge.addEventListener('click', async () => {
+                ffmpegSpinnerGIFLarge.style.display = 'inline-block';
+                if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIFLarge, 'large');
+                    return;
+                }
+                
+                try {
+                    await loadFFmpegScriptsSequentially();
+                    renderAsGIF(RESOLUTION_TIERS.SD, ffmpegSpinnerGIFLarge, 'large');
+                } catch (error) {
+                    console.error('Could not initialize FFmpeg:', error);
+                    ffmpegSpinnerGIFLarge.style.display = 'none';
                 }
             });
             
@@ -2638,9 +2701,9 @@
             }
 
             // Function to render GIF with FFmpeg
-            async function renderAsGIF(resolution = RESOLUTION_TIERS.SD, spinner = ffmpegSpinnerGIF) {
+            async function renderAsGIF(resolution = RESOLUTION_TIERS.SD, spinner = ffmpegSpinnerGIF, size = 'small') {
                 const ffmpeg = ffmpegState.ffmpeg;
-                statusDiv.textContent = `Capturing frames for small GIF...`;
+                statusDiv.textContent = `Capturing frames for ${size} GIF...`;
                 
                 // Disable all buttons during rendering
                 ffmpegButton.disabled = true;
@@ -2648,6 +2711,8 @@
                 ffmpegButtonHD.disabled = true;
                 ffmpegButtonFullHD.disabled = true;
                 ffmpegButtonGIF.disabled = true;
+                ffmpegButtonGIFMed.disabled = true;
+                ffmpegButtonGIFLarge.disabled = true;
                 
                 // Determine the frame range to render
                 let startFrame = 0;
@@ -2657,7 +2722,7 @@
                 if (isRangeActive) {
                     startFrame = startValue;
                     endFrame = endValue;
-                    statusDiv.textContent = `Capturing frames for small GIF (selected range only)...`;
+                    statusDiv.textContent = `Capturing frames for ${size} GIF (selected range only)...`;
                 }
                 
                 // For GIF capture every 4th frame to reduce size (7.5fps from 30fps source)
@@ -2675,21 +2740,42 @@
                 const originalAspectRatio = video.videoWidth / video.videoHeight;
                 let targetWidth, targetHeight;
                 
-                // Use half the resolution of SD (480p)
                 const smallResolution = {
-                    width: Math.floor(resolution.width / 2),
-                    height: Math.floor(resolution.height / 2),
+                    width: Math.floor(resolution.width / 3),
+                    height: Math.floor(resolution.height / 3),
                     name: "Small"
                 };
+
+                const medResolution = {
+                    width: Math.floor(resolution.width / 2),
+                    height: Math.floor(resolution.height / 2),
+                    name: "Medium"
+                };
+
+                const largeResolution = {
+                    width: Math.floor(resolution.width / 1),
+                    height: Math.floor(resolution.height / 1),
+                    name: "Large"
+                };
+                
+                // Select the appropriate resolution based on the size parameter
+                let selectedResolution;
+                if (size === 'medium') {
+                    selectedResolution = medResolution;
+                } else if (size === 'large') {
+                    selectedResolution = largeResolution;
+                } else {
+                    selectedResolution = smallResolution;
+                }
                 
                 if (originalAspectRatio >= 1) {
                     // Landscape or square video
-                    targetWidth = smallResolution.width;
-                    targetHeight = Math.round(smallResolution.width / originalAspectRatio);
+                    targetWidth = selectedResolution.width;
+                    targetHeight = Math.round(selectedResolution.width / originalAspectRatio);
                 } else {
                     // Portrait video
-                    targetHeight = smallResolution.height;
-                    targetWidth = Math.round(smallResolution.height * originalAspectRatio);
+                    targetHeight = selectedResolution.height;
+                    targetWidth = Math.round(selectedResolution.height * originalAspectRatio);
                 }
                 
                 console.log(`Original video: ${video.videoWidth}x${video.videoHeight}, aspect ratio: ${originalAspectRatio}`);
@@ -2742,7 +2828,7 @@
                         
                         // Update progress
                         const progress = Math.floor((i / totalFramesToCapture) * 100);
-                        statusDiv.textContent = `Capturing frames for small GIF: ${progress}%`;
+                        statusDiv.textContent = `Capturing frames for ${size} GIF: ${progress}%`;
                     }
 
                     statusDiv.textContent = 'Creating GIF with FFmpeg...';
@@ -2787,7 +2873,7 @@
                     a.href = url;
                     
                     // Add range info to filename if range is active
-                    let filename = `meme_gif_${targetWidth}x${targetHeight}_small`;
+                    let filename = `meme_gif_${targetWidth}x${targetHeight}_${size}`;
                     if (isRangeActive) {
                         const startTimeStr = formatTime(startFrame / 30).replace(':', 'm') + 's';
                         const endTimeStr = formatTime(endFrame / 30).replace(':', 'm') + 's';
@@ -2804,7 +2890,7 @@
                         URL.revokeObjectURL(url);
                     }, 100);
 
-                    statusDiv.textContent = `GIF creation complete! ${targetWidth}x${targetHeight} (Small) file size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
+                    statusDiv.textContent = `GIF creation complete! ${targetWidth}x${targetHeight} (${size}) file size: ${(blob.size / 1024 / 1024).toFixed(2)} MB`;
                     
                     // Re-enable all buttons
                     ffmpegButton.disabled = false;
@@ -2812,6 +2898,8 @@
                     ffmpegButtonHD.disabled = false;
                     ffmpegButtonFullHD.disabled = false;
                     ffmpegButtonGIF.disabled = false;
+                    ffmpegButtonGIFMed.disabled = false;
+                    ffmpegButtonGIFLarge.disabled = false;
                     spinner.style.display = 'none';
                 } catch (error) {
                     console.error('GIF processing error:', error);
@@ -2823,6 +2911,8 @@
                     ffmpegButtonHD.disabled = false;
                     ffmpegButtonFullHD.disabled = false;
                     ffmpegButtonGIF.disabled = false;
+                    ffmpegButtonGIFMed.disabled = false;
+                    ffmpegButtonGIFLarge.disabled = false;
                     spinner.style.display = 'none';
                 }
             }
