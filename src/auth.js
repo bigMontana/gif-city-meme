@@ -14,15 +14,11 @@ async function initializeUserData(userId, email, username = null) {
             username: username || email.split('@')[0],
             created_at: now,
             last_login_at: now,
-            subscription_tier: SUBSCRIPTION_TIERS.FREE,
-            subscription_start_date: now,
-            subscription_end_date: null,
-            face_quota: tierLimits.face_quota,
             face_count: 0,
             meme_storage_enabled: tierLimits.meme_storage_enabled,
             stored_meme_quota: tierLimits.stored_meme_quota,
             stored_meme_count: 0,
-            is_active: true,
+            is_paid: false,
             last_updated_at: now
         };
 

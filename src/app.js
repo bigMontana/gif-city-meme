@@ -147,6 +147,19 @@ loginBtn.addEventListener('click', () => {
 
 // Initialize any necessary features
 document.addEventListener('DOMContentLoaded', async () => {
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+        try {
+            const registration = await navigator.serviceWorker.register('/sw.js', {
+                type: 'module', // Important for Vite
+                scope: '/'
+            });
+            console.log('Service Worker registered with scope:', registration.scope);
+        } catch (error) {
+            console.error('Service Worker registration failed:', error);
+        }
+    }
+
     console.log('App initialized');
     await loadTemplates(); // Load templates when the page loads
 }); 

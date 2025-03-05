@@ -197,23 +197,8 @@
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
 
-        .profile-picture {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background-color: #36B2B7;
-            overflow: hidden;
-            border: 3px solid #DA3A98;
-        }
-
-        .profile-picture img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
         .profile-info {
-            margin-left: 20px;
+            margin-left: 0;
         }
 
         .profile-username {
@@ -381,13 +366,10 @@
         <!-- Profile Content Container (Empty) -->
         <div class="profile-content">
             <div class="profile-top-bar">
-                <div class="profile-picture">
-                    <img src="https://via.placeholder.com/100" alt="Profile Picture" id="profileImage">
-                </div>
                 <div class="profile-info">
                     <div class="profile-username" id="profileUsername">Username</div>
                     <div class="profile-email" id="profileEmail">user@example.com</div>
-                    <div class="profile-subscription" id="profileSubscription">Free Tier</div>
+                    <div class="profile-subscription" id="profileSubscription">MEMBER FOR 0 DAYS</div>
                 </div>
             </div>
             
@@ -482,33 +464,42 @@
                     console.error('Error fetching profile data:', error);
                     // Generate default buttons even when profile fetch fails
                     updateFaceQuotaDisplay(3);
-                    generateFaceButtons(3);
+                    generateFaceButtons();
                     return;
                 }
                 
                 if (data) {
-                    // Update subscription display
-                    const subscriptionTier = data.subscription_tier ? data.subscription_tier.toUpperCase() + ' TIER' : 'FREE TIER';
-                    const profileSubscription = document.getElementById('profileSubscription');
-                    if (profileSubscription) {
-                        profileSubscription.textContent = subscriptionTier;
+                    // Calculate membership duration in days
+                    const createdAt = data.created_at || currentUser.created_at;
+                    let membershipDays = 0;
+                    
+                    if (createdAt) {
+                        const signupDate = new Date(createdAt);
+                        const today = new Date();
+                        const timeDiff = today.getTime() - signupDate.getTime();
+                        membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
                     }
                     
-                    // Get the face quota from TIER_LIMITS based on the user's subscription tier
-                    const userTier = data.subscription_tier || SUBSCRIPTION_TIERS.FREE;
-                    const tierFaceQuota = TIER_LIMITS[userTier].face_quota;
+                    // Update membership duration display
+                    const profileSubscription = document.getElementById('profileSubscription');
+                    if (profileSubscription) {
+                        profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
+                    }
                     
-                    // Use the face quota from constants.js instead of the database value
-                    // Always show at least 3 slots
-                    const faceQuota = Math.max(tierFaceQuota, 3);
+                    // Get face count from the database
+                    const faceCount = data.face_count || 0;
                     
-                    // Update face quota display to show the quota (not the count)
-                    updateFaceQuotaDisplay(faceQuota);
+                    // Determine how many face slots to show based on paid status
+                    // Free users get 3 slots, paid users get more
+                    const displaySlots = data.is_paid ? 10 : 3;
+                    
+                    // Update face quota display to show available slots
+                    updateFaceQuotaDisplay(displaySlots, faceCount);
                     
                     // Generate face buttons
-                    generateFaceButtons(faceQuota);
+                    generateFaceButtons(displaySlots);
                     
-                    // Add a small delay before loading face images to ensure any cached headers are cleared
+                    // Add a small delay before loading face images
                     setTimeout(() => {
                         console.log('Loading existing face images with delay...');
                         loadExistingFaceImages();
@@ -527,27 +518,22 @@
         }
         
         // Helper function to update face quota display
-        function updateFaceQuotaDisplay(quota) {
+        function updateFaceQuotaDisplay(totalSlots, faceCount = 0) {
             const faceQuotaCount = document.getElementById('faceQuotaCount');
             if (faceQuotaCount) {
-                faceQuotaCount.textContent = quota;
+                faceQuotaCount.textContent = totalSlots;
             }
             
-            // Also update the title to make it clearer
+            // Also update the title to show both total slots and used count
             const faceQuotaTitle = document.querySelector('.face-quota-title');
             if (faceQuotaTitle) {
-                // Get the current user's subscription tier
-                const profileSubscription = document.getElementById('profileSubscription');
-                const currentTier = profileSubscription ? profileSubscription.textContent.toLowerCase() : 'free tier';
-                
-                // Create a more informative title that shows the tier limits
-                let titleText = `Your Face Slots (<span id="faceQuotaCount">${quota}</span> available)`;
+                // Create a more informative title that shows usage
+                let titleText = `Your Face Slots (<span id="faceQuotaCount">${totalSlots}</span> available, ${faceCount} used)`;
                 
                 // Add tier information
                 titleText += `<div class="tier-limits-info">`;
-                titleText += `<span class="free-tier-info">Free: ${TIER_LIMITS[SUBSCRIPTION_TIERS.FREE].face_quota}</span>`;
-                titleText += `<span class="basic-tier-info">Basic: ${TIER_LIMITS[SUBSCRIPTION_TIERS.BASIC].face_quota}</span>`;
-                titleText += `<span class="premium-tier-info">Premium: ${TIER_LIMITS[SUBSCRIPTION_TIERS.PREMIUM].face_quota}</span>`;
+                titleText += `<span class="free-tier-info">Free: 3 slots</span>`;
+                titleText += `<span class="paid-tier-info">Paid: 10 slots</span>`;
                 titleText += `</div>`;
                 
                 faceQuotaTitle.innerHTML = titleText;
@@ -567,11 +553,8 @@
                     .free-tier-info {
                         color: #aaaaaa;
                     }
-                    .basic-tier-info {
+                    .paid-tier-info {
                         color: #36B2B7;
-                    }
-                    .premium-tier-info {
-                        color: #DA3A98;
                     }
                 `;
                 document.head.appendChild(style);
@@ -579,9 +562,9 @@
         }
 
         // Function to generate face buttons based on face_quota
-        function generateFaceButtons(faceQuota) {
+        function generateFaceButtons(faceSlots) {
             // Ensure we have a valid number, default to 3 if not
-            faceQuota = faceQuota || 3;
+            faceSlots = faceSlots || 3;
             
             const container = document.getElementById('faceButtonsContainer');
             if (!container) return;
@@ -589,14 +572,13 @@
             // Clear existing buttons
             container.innerHTML = '';
             
-            console.log(`Generating ${faceQuota} face buttons`);
+            console.log(`Generating ${faceSlots} face buttons`);
             
-            // Get tier limits for visual indicators
-            const freeTierLimit = TIER_LIMITS[SUBSCRIPTION_TIERS.FREE].face_quota;
-            const basicTierLimit = TIER_LIMITS[SUBSCRIPTION_TIERS.BASIC].face_quota;
+            // Free tier limit (hard-coded to 3)
+            const freeTierLimit = 3;
             
             // Generate new buttons
-            for (let i = 1; i <= faceQuota; i++) {
+            for (let i = 1; i <= faceSlots; i++) {
                 const button = document.createElement('div');
                 button.className = 'face-button';
                 button.dataset.faceNumber = i;
@@ -642,19 +624,12 @@
                 fileInput.accept = 'image/*';
                 fileInput.dataset.faceNumber = i;
                 
-                // Add tier indicator for slots beyond free tier
+                // Update tier indicator for slots beyond free tier
                 if (i > freeTierLimit) {
                     const tierIndicator = document.createElement('div');
                     tierIndicator.className = 'tier-indicator';
-                    
-                    if (i <= basicTierLimit) {
-                        tierIndicator.textContent = 'BASIC';
-                        tierIndicator.classList.add('basic-tier');
-                    } else {
-                        tierIndicator.textContent = 'PREMIUM';
-                        tierIndicator.classList.add('premium-tier');
-                    }
-                    
+                    tierIndicator.textContent = 'PAID';
+                    tierIndicator.classList.add('paid-tier');
                     button.appendChild(tierIndicator);
                 }
                 
@@ -752,58 +727,8 @@
                 container.appendChild(button);
             }
             
-            // Add styles for loading indicator if not already present
-            if (!document.getElementById('face-loading-styles')) {
-                const style = document.createElement('style');
-                style.id = 'face-loading-styles';
-                style.textContent = `
-                    .face-loading {
-                        position: absolute;
-                        top: 0;
-                        left: 0;
-                        width: 100%;
-                        height: 100%;
-                        background-color: rgba(0,0,0,0.5);
-                        display: none;
-                        justify-content: center;
-                        align-items: center;
-                        z-index: 3;
-                    }
-                    .spinner {
-                        width: 24px;
-                        height: 24px;
-                        border: 3px solid rgba(255,255,255,0.3);
-                        border-radius: 50%;
-                        border-top-color: #ffffff;
-                        animation: spin 1s ease-in-out infinite;
-                    }
-                    @keyframes spin {
-                        to { transform: rotate(360deg); }
-                    }
-                    .face-image {
-                        width: 100%;
-                        height: 100%;
-                        object-fit: cover;
-                    }
-                    .tier-indicator {
-                        position: absolute;
-                        top: 0;
-                        right: 0;
-                        padding: 2px 5px;
-                        font-size: 10px;
-                        color: white;
-                        z-index: 2;
-                    }
-                    .basic-tier {
-                        background-color: #36B2B7;
-                    }
-                    .premium-tier {
-                        background-color: #DA3A98;
-                    }
-                `;
-                document.head.appendChild(style);
-            } else {
-                // Update existing styles to include tier indicators
+            // Update the styling for tier indicators
+            if (document.getElementById('face-loading-styles')) {
                 const existingStyle = document.getElementById('face-loading-styles');
                 if (!existingStyle.textContent.includes('tier-indicator')) {
                     existingStyle.textContent += `
@@ -816,11 +741,8 @@
                         color: white;
                         z-index: 2;
                     }
-                    .basic-tier {
+                    .paid-tier {
                         background-color: #36B2B7;
-                    }
-                    .premium-tier {
-                        background-color: #DA3A98;
                     }
                     `;
                 }
@@ -1116,6 +1038,23 @@
                         userMeta.username : 
                         currentUser.email.split('@')[0];
                 }
+                
+                // Calculate membership duration
+                const createdAt = currentUser.created_at;
+                let membershipDays = 0;
+                
+                if (createdAt) {
+                    const signupDate = new Date(createdAt);
+                    const today = new Date();
+                    const timeDiff = today.getTime() - signupDate.getTime();
+                    membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
+                }
+                
+                // Update membership duration display
+                const profileSubscription = document.getElementById('profileSubscription');
+                if (profileSubscription) {
+                    profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
+                }
             }
         }
 
@@ -1126,11 +1065,11 @@
             // Reset profile data
             const profileSubscription = document.getElementById('profileSubscription');
             if (profileSubscription) {
-                profileSubscription.textContent = 'Free Tier';
+                profileSubscription.textContent = 'MEMBER FOR 0 DAYS';
             }
             
-            // Update face quota display and generate buttons
-            updateFaceQuotaDisplay(3);
+            // Update face quota display and generate buttons with 0 faces used
+            updateFaceQuotaDisplay(3, 0);
             generateFaceButtons(3);
         }
 

@@ -1,23 +1,20 @@
 export const SUBSCRIPTION_TIERS = {
     FREE: 'free',
-    BASIC: 'basic',
     PREMIUM: 'premium'
 };
 
 export const TIER_LIMITS = {
-    [SUBSCRIPTION_TIERS.FREE]: {
-        face_quota: 3,
-        meme_storage_enabled: false,
-        stored_meme_quota: 0
-    },
-    [SUBSCRIPTION_TIERS.BASIC]: {
-        face_quota: 15,
+    free: {
         meme_storage_enabled: true,
-        stored_meme_quota: 20
+        stored_meme_quota: 50
     },
-    [SUBSCRIPTION_TIERS.PREMIUM]: {
-        face_quota: 40,
+    premium: {
         meme_storage_enabled: true,
-        stored_meme_quota: 100
+        stored_meme_quota: 250
     }
+};
+
+export const DEFAULT_USER_SETTINGS = {
+    meme_storage_enabled: true,  // Enable storage for all users
+    stored_meme_quota: 50        // Set a default quota for all users
 }; 

@@ -361,167 +361,117 @@
 
         .pricing-tiers {
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             gap: 20px;
-            flex-wrap: nowrap;
+            margin: 0 auto;
+            max-width: 1200px;
         }
 
         .pricing-card {
-            background-color: #1a1a1a;
-            border-radius: 8px;
-            padding: 25px;
+            background: linear-gradient(180deg, #36B2B7 0%, #2a8a8e 100%);
+            border-radius: 10px;
+            padding: 20px;
             width: 100%;
-            max-width: 330px;
-            border: 1px solid #333;
+            text-align: center;
             position: relative;
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            border: 3px solid #36B2B7;
         }
 
         .pricing-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
-        }
-        
-        /* Free tier specific styles */
-        .pricing-card.free {
-            background-color: #1a1a1a;
-            border-color: #292929;
-        }
-        
-        .pricing-card.free:hover {
-            transform: none;
-            box-shadow: none;
+            transform: translateY(-10px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.4);
+            border-color: #DA3A98;
         }
 
-        .pricing-card.premium {
-            border-color: #36B2B7;
-            background-color: #1c1c1c;
-        }
-
-        .bundle-tag {
+        .bonus-tag {
             position: absolute;
-            top: -12px;
-            right: 20px;
-            background-color: #4CAF50;
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .tier-header {
-            margin-bottom: 20px;
-        }
-
-        .tier-header h3 {
-            font-size: 32px;
-            margin-bottom: 15px;
-            color: white;
-        }
-
-        .price {
-            display: flex;
-            align-items: baseline;
-            margin-bottom: 10px;
-        }
-
-        .original-price {
-            color: #888;
-            font-size: 20px;
-            text-decoration: line-through;
-            margin-right: 10px;
-        }
-
-        .current-price {
-            color: white;
-            font-size: 42px;
-            font-weight: bold;
-        }
-
-        .currency {
-            color: #888;
-            font-size: 18px;
-            margin-left: 5px;
-        }
-
-        .features-list {
-            list-style: none;
-            margin: 25px 0;
-            padding: 0;
-        }
-
-        .features-list li {
-            margin-bottom: 12px;
-            padding-left: 30px;
-            position: relative;
-            font-size: 18px;
-        }
-
-        .feature-included::before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #36B2B7;
-            font-weight: bold;
-        }
-
-        .feature-excluded {
-            color: #888;
-        }
-
-        .feature-excluded::before {
-            content: "✗";
-            position: absolute;
-            left: 0;
-            color: #888;
-        }
-
-        .update-badge {
-            background-color: #444;
-            font-size: 14px;
-            padding: 2px 10px;
-            border-radius: 20px;
-            margin-left: 10px;
-            color: #36B2B7;
-        }
-
-        .btn-get-shipfast, .btn-get-bundle {
-            width: 100%;
-            padding: 15px 0;
-            border: none;
-            border-radius: 5px;
+            top: -15px;
+            right: -10px;
             background-color: #DA3A98;
             color: white;
-            font-size: 20px;
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            transition: background-color 0.2s;
-        }
-
-        .btn-get-bundle {
-            background-color: #36B2B7;
-        }
-
-        .btn-get-shipfast:hover {
-            background-color: #c4327f;
-        }
-
-        .btn-get-bundle:hover {
-            background-color: #2d989d;
-        }
-
-        .lightning-icon {
-            margin-right: 8px;
-        }
-
-        .pricing-footer {
-            text-align: center;
-            color: #888;
-            margin-top: 15px;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-weight: bold;
             font-size: 16px;
+            transform: rotate(5deg);
+            box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+        }
+
+        .tier-image {
+            width: 80%;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .tier-image img {
+            width: 100%;
+            height: auto;
+        }
+
+        .tier-info {
+            margin: 15px 0;
+        }
+
+        .tier-info h3 {
+            font-size: 42px;
+            color: white;
+            margin: 0;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .tier-name {
+            font-size: 24px;
+            color: white;
+            margin: 5px 0;
+            font-weight: bold;
+        }
+
+        .tier-price {
+            background-color: #FFDD00;
+            padding: 10px 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .tier-price p {
+            margin: 0;
+            font-size: 22px;
+            font-weight: bold;
+            color: #000;
+        }
+
+        .price-per-credit {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+            text-align: center;
+        }
+
+        /* Responsive adjustments for pricing cards */
+        @media (max-width: 900px) {
+            .pricing-tiers {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .pricing-card {
+                max-width: 45%;
+                margin-bottom: 30px;
+            }
+        }
+
+        @media (max-width: 600px) {
+            .pricing-card {
+                max-width: 100%;
+            }
         }
 
         .tier-description {
@@ -686,108 +636,70 @@
 
         <!-- Pricing Tiers Container -->
         <div class="pricing-container">
-            <h2 class="pricing-title">Choose Your Membership</h2>
+            <h2 class="pricing-title">PURCHASE CREDITS!</h2>
+            
             <div class="pricing-tiers">
-                <!-- Free Tier (formerly Starter Tier) -->
-                <div class="pricing-card free">
-                    <div class="tier-header">
-                        <h3>FREE</h3>
-                        <div class="price">
-                            <span class="current-price">$0</span>
-                            <span class="currency">USD</span>
-                        </div>
+                <!-- 1,000 Credits -->
+                <div class="pricing-card" id="tier1">
+                    <div class="tier-image">
+                        <img src="/src/assets/images/GERGFACE.png" alt="100 Credits">
                     </div>
-                    <ul class="features-list">
-                        <li class="feature-included">Access to 1 & 2 face templates</li>
-                        <li class="feature-included">Render MP4 SD 480p</li>
-                        <li class="feature-included">Render GIF Small</li>
-                        <li class="feature-included">5 renders a day limit</li>
-                        <li class="feature-included">50 renders a month limit</li>
-                        <li class="feature-included">3 saved faces limit</li>
-                        <!-- <li class="feature-included">Components & animations</li>
-                        <li class="feature-included">ChatGPT prompts for terms & privacy</li> -->
-                        <li class="feature-excluded">Access to 3 & 4 face templates</li>
-                        <li class="feature-excluded">Render MP4 HD 1080p</li>
-                        <li class="feature-excluded">Render GIF Medium & Large</li>
-                        <li class="feature-excluded">10 renders a day limit</li>
-                        <li class="feature-excluded">100 renders a month limit</li>
-                        <li class="feature-excluded">5 saved faces limit</li>
-                    </ul>
-                    <p class="pricing-footer" style="margin-top: 60px;">Default tier for all users</p>
+                    <div class="tier-info">
+                        <h3>100</h3>
+                        <p class="tier-name">CREDITS</p>
+                    </div>
+                    <div class="tier-price">
+                        <p>USD $10</p>
+                    </div>
+                    <p class="price-per-credit">*$0.10 per credit</p>
                 </div>
 
-                <!-- All-in Tier -->
-                <div class="pricing-card">
-                    <div class="tier-header">
-                        <h3>STANDARD</h3>
-                        <div class="price">
-                            <!-- <span class="original-price">$349</span> -->
-                            <span class="current-price">$12/month</span>
-                            <span class="currency">USD</span>
-                        </div>
+                <!-- 2,800 Credits -->
+                <div class="pricing-card" id="tier2">
+                    <div class="bonus-tag">10% EXTRA!</div>
+                    <div class="tier-image">
+                        <img src="/src/assets/images/GERGFACE.png" alt="220 Credits">
                     </div>
-                    <ul class="features-list">
-                        <li class="feature-included">Everything in Free tier</li>
-                        <li class="feature-included">Remove Watermark</li>
-                        <li class="feature-included">Access to all templates</li>
-                        <li class="feature-included">Render MP4 HD 720</li>
-                        <li class="feature-included">Render GIF Medium</li>
-                        <li class="feature-included">20 renders a day limit</li>
-                        <li class="feature-included">120 renders a month limit</li>
-                        <li class="feature-included">15 saved faces limit</li>
-                        <li class="feature-included">Access to 'Range Selector'</li>
-                        <li class="feature-included">Early access to new features and templates</li>
-                        <!-- <li class="feature-included">Lifetime updates<span class="update-badge">Updated 1 month ago</span></li> -->
-                    </ul>
-                    <button class="btn-get-shipfast">
-                        <span class="lightning-icon">🤪</span> Get Standard
-                    </button>
-                    <p class="pricing-footer">Great for YouTubers, Streamers, and content creators</p>
+                    <div class="tier-info">
+                        <h3>220</h3>
+                        <p class="tier-name">CREDITS</p>
+                    </div>
+                    <div class="tier-price">
+                        <p>USD $20</p>
+                    </div>
+                    <p class="price-per-credit">*$0.09 per credit</p>
                 </div>
 
-                <!-- ShipFast + CodeFast Bundle Tier -->
-                <div class="pricing-card premium">
-                    <div class="bundle-tag">MEME-TACULAR</div>
-                    <div class="tier-header">
-                        <h3>PREMIUM</h3>
-                        <div class="price">
-                            <!-- <span class="original-price">$648</span> -->
-                            <span class="current-price">$25/month</span>
-                            <span class="currency">USD</span>
-                        </div>
+                <!-- 5,000 Credits -->
+                <div class="pricing-card" id="tier3">
+                    <div class="bonus-tag">22% EXTRA!</div>
+                    <div class="tier-image">
+                        <img src="/src/assets/images/GERGFACE.png" alt="430 Credits">
                     </div>
-                    <ul class="features-list">
-                        <li class="feature-included">Everything in Standard tier</li>
-                        <li class="feature-included">Render MP4 HD 1080p</li>
-                        <li class="feature-included">Render GIF Large</li>
-                        <li class="feature-included">No daily limit</li>
-                        <li class="feature-included">Unlimited renders a month</li>
-                        <li class="feature-included">35 saved faces limit</li>
-                        <li class="feature-included">Early access to new features and templates</li>
-                        <!-- <li class="feature-included">Lifetime updates<span class="update-badge">Updated 1 month ago</span></li> -->
-                    </ul>
-                    <!-- <div class="tier-description">
-                        <p>Everything in All-in, and...</p>
+                    <div class="tier-info">
+                        <h3>430</h3>
+                        <p class="tier-name">CREDITS</p>
                     </div>
-                    <div class="codefast-section">
-                        <div class="codefast-header">
-                            <span class="code-icon">&#60;/&#62;</span>
-                            <h4>CodeFast ($299 value)</h4>
-                        </div>
-                        <p>Learn to code in weeks, not months</p>
-                        <ul class="codefast-features">
-                            <li>12 hours of content</li>
-                            <li>Build a SaaS from 0</li>
-                            <li>Entrepreneur mindset</li>
-                        </ul>
-                        <div class="students-avatars">
-                            <p>1,000+ students love CodeFast</p>
-                        </div>
-                    </div> -->
-                    <button class="btn-get-bundle">
-                        Get ShipFast + CodeFast
-                    </button>
-                    <p class="pricing-footer">For the memesmiths</p>
+                    <div class="tier-price">
+                        <p>USD $35</p>
+                    </div>
+                    <p class="price-per-credit">*$0.08 per credit</p>
+                </div>
+
+                <!-- 13,500 Credits -->
+                <div class="pricing-card" id="tier4">
+                    <div class="bonus-tag">35% EXTRA!</div>
+                    <div class="tier-image">
+                        <img src="/src/assets/images/GERGFACE.png" alt="810 Credits">
+                    </div>
+                    <div class="tier-info">
+                        <h3>810</h3>
+                        <p class="tier-name">CREDITS</p>
+                    </div>
+                    <div class="tier-price">
+                        <p>USD $60</p>
+                    </div>
+                    <p class="price-per-credit">*$0.07 per credit</p>
                 </div>
             </div>
         </div>
@@ -819,6 +731,21 @@
         const profileBtn = document.getElementById('profileBtn');
         const loginForm = document.getElementById('loginForm');
         const signupForm = document.getElementById('signupForm');
+
+        // Add event listeners for pricing cards
+        document.addEventListener('DOMContentLoaded', function() {
+            const pricingCards = document.querySelectorAll('.pricing-card');
+            
+            pricingCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const tierId = this.id;
+                    const tierAmount = this.querySelector('h3').textContent;
+                    const tierPrice = this.querySelector('.tier-price p').textContent;
+                    
+                    console.log(`Clicked on ${tierId}: ${tierAmount} credits for ${tierPrice}`);
+                });
+            });
+        });
 
         // Auth state management
         let currentUser = null;

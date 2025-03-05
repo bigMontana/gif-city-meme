@@ -1,13 +1,14 @@
-// Initialize the Supabase client
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Initialize the Supabase client with Worker URL during development
+const supabaseUrl = import.meta.env.DEV 
+  ? 'http://127.0.0.1:8787'  // Local development (Cloudflare Worker)
+  : import.meta.env.VITE_SUPABASE_URL;
 
-// Configure client with persistence options
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs';
+
+// Configure client with persistence and headers
 export const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
   auth: {
-    // Default to persisting the session for 30 days
     persistSession: true,
-    // You can adjust this value to change how long the session is stored
     storageKey: 'facemememaker-auth-token',
     autoRefreshToken: true,
     localStorage: window.localStorage
@@ -22,6 +23,7 @@ function getPublicUrl(bucket, path) {
 // Function to fetch all templates
 export async function fetchAllTemplates() {
     try {
+        console.log('Fetching from Supabase URL:', supabaseUrl);
         const { data, error } = await supabase
             .from('templates')
             .select('*')
@@ -32,7 +34,8 @@ export async function fetchAllTemplates() {
             return [];
         }
 
-        // The paths in the database are already complete URLs
+        console.log('Templates received:', data);
+        
         const templatesWithUrls = data?.map(template => ({
             ...template,
             thumbnail_url: template.thumbnail_path,

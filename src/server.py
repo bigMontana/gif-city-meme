@@ -9,6 +9,9 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         # Serve view.html when accessing the root URL
         if self.path == '/':
             self.path = '/view.html'
+        # Add proper MIME type for Service Worker
+        elif self.path.endswith('sw.js'):
+            self.send_header('Content-Type', 'application/javascript')
         return super().do_GET()
 
     def end_headers(self):
