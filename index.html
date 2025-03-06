@@ -639,7 +639,7 @@
             <h2 class="pricing-title">PURCHASE CREDITS!</h2>
             
             <div class="pricing-tiers">
-                <!-- 1,000 Credits -->
+                <!-- 100 Credits -->
                 <div class="pricing-card" id="tier1">
                     <div class="tier-image">
                         <img src="/src/assets/images/GERGFACE.png" alt="100 Credits">
@@ -654,7 +654,7 @@
                     <p class="price-per-credit">*$0.10 per credit</p>
                 </div>
 
-                <!-- 2,800 Credits -->
+                <!-- 220 Credits -->
                 <div class="pricing-card" id="tier2">
                     <div class="bonus-tag">10% EXTRA!</div>
                     <div class="tier-image">
@@ -670,7 +670,7 @@
                     <p class="price-per-credit">*$0.09 per credit</p>
                 </div>
 
-                <!-- 5,000 Credits -->
+                <!-- 430 Credits -->
                 <div class="pricing-card" id="tier3">
                     <div class="bonus-tag">22% EXTRA!</div>
                     <div class="tier-image">
@@ -686,7 +686,7 @@
                     <p class="price-per-credit">*$0.08 per credit</p>
                 </div>
 
-                <!-- 13,500 Credits -->
+                <!-- 810 Credits -->
                 <div class="pricing-card" id="tier4">
                     <div class="bonus-tag">35% EXTRA!</div>
                     <div class="tier-image">
@@ -723,6 +723,7 @@
     <script type="module">
         import { supabase } from './src/supabase.js';
         import { auth } from './src/auth.js';
+        import { userService } from './src/userService.js';
 
         // DOM Elements
         const authModal = document.getElementById('authModal');
@@ -737,12 +738,50 @@
             const pricingCards = document.querySelectorAll('.pricing-card');
             
             pricingCards.forEach(card => {
-                card.addEventListener('click', function() {
+                card.addEventListener('click', async function() {
+                    // Check if user is logged in
+                    if (!currentUser) {
+                        alert('Please log in to purchase credits');
+                        authModal.style.display = 'block';
+                        return;
+                    }
+
+                    const userId = currentUser.id;
                     const tierId = this.id;
-                    const tierAmount = this.querySelector('h3').textContent;
-                    const tierPrice = this.querySelector('.tier-price p').textContent;
+                    let creditsToAdd = 0;
                     
-                    console.log(`Clicked on ${tierId}: ${tierAmount} credits for ${tierPrice}`);
+                    // Determine credits amount based on the tier
+                    switch(tierId) {
+                        case 'tier1':
+                            creditsToAdd = 100;
+                            break;
+                        case 'tier2':
+                            creditsToAdd = 220;
+                            break;
+                        case 'tier3':
+                            creditsToAdd = 430;
+                            break;
+                        case 'tier4':
+                            creditsToAdd = 810;
+                            break;
+                        default:
+                            console.error('Unknown tier ID:', tierId);
+                            return;
+                    }
+                    
+                    // In a real app, you would process payment here before adding credits
+                    // For now, just add the credits directly
+                    try {
+                        const result = await userService.addCredits(userId, creditsToAdd);
+                        if (result) {
+                            alert(`Successfully added ${creditsToAdd} credits to your account!`);
+                        } else {
+                            alert('Failed to add credits. Please try again.');
+                        }
+                    } catch (error) {
+                        console.error('Error adding credits:', error);
+                        alert('Error adding credits: ' + error.message);
+                    }
                 });
             });
         });

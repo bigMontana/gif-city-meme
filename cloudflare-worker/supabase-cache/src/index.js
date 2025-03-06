@@ -22,8 +22,8 @@ export default {
 		// Add CORS headers to all responses
 		const corsHeaders = {
 			'Access-Control-Allow-Origin': 'http://localhost:5173', // Only set one origin
-			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-			'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, accept, x-supabase-api-version',
+			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+			'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, content-profile, prefer, accept, x-supabase-api-version',
 			'Access-Control-Expose-Headers': 'content-range',
 			'Access-Control-Max-Age': '86400',
 		};

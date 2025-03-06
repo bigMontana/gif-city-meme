@@ -17,6 +17,12 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script type="module" src="/src/supabase.js"></script>
     <script type="module" src="/src/auth.js"></script>
+    <!-- Import userService and expose it globally -->
+    <script type="module">
+        import { userService } from './src/userService.js';
+        // Make userService available globally
+        window.userService = userService;
+    </script>
     <script src="./ffmpeg/ffmpeg.min.js" defer></script>
     <script defer>
         // This ensures FFmpeg scripts are loaded in the correct order
@@ -39,6 +45,7 @@
             });
         });
     </script>
+    
     <style>
         * {
             margin: 0;
@@ -237,6 +244,20 @@
 
         .footer a:hover {
             opacity: 0.8;
+        }
+
+        /* Header credits display */
+        .header-credits {
+            font-size: 30px;
+            color: #fffb1e;
+            font-weight: bold;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background-color: rgba(0, 0, 0, 0.3);
+            margin-right: 10px;
+            display: flex;
+            align-items: center;
+            height: 40px;
         }
 
         #video-container {
@@ -741,6 +762,43 @@
         #tallyTotalCredits strong {
             font-size: 16px;
         }
+
+        .ffmpeg-button.disabled {
+            background-color: #aaa;
+            cursor: not-allowed;
+        }
+
+        .ffmpeg-button.insufficient-credits {
+            background-color: #FF5252;
+            position: relative;
+        }
+        
+        .ffmpeg-button.insufficient-credits:hover:after {
+            content: "Insufficient credits!";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+            white-space: nowrap;
+            margin-bottom: 5px;
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-top: 3px solid #fff;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
     </style>
 </head>
 <body>
@@ -750,6 +808,7 @@
                 <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo" crossorigin="anonymous">
             </a>
             <div class="buttons" id="headerButtons">
+                <div class="header-credits" id="headerCredits">?</div>
                 <button class="btn btn-secondary" id="profileBtn" style="display: none;">Profile</button>
                 <button class="btn btn-light" id="authBtn">Log In</button>
             </div>
@@ -782,6 +841,7 @@
 
         <!-- Move status div here -->
         <div id="status" class="status"></div>
+        <div id="status2" class="status"></div>
 
         <!-- Move scrubber container before video container -->
         <div class="scrubber-container">
@@ -941,9 +1001,62 @@
                 return;
             }
 
+            // Add a variable for the loading animation interval
+            let loadingAnimationInterval;
+            
+            // Function to start the loading animation
+            function startLoadingAnimation() {
+                // Get status2 element
+                const status2Div = document.getElementById('status2');
+                let dotCount = 0;
+                let startTime = Date.now();
+                let longLoadMessage = false;
+                
+                // Clear any existing animation
+                if (loadingAnimationInterval) {
+                    clearInterval(loadingAnimationInterval);
+                }
+                
+                // Start new animation
+                loadingAnimationInterval = setInterval(() => {
+                    dotCount = (dotCount + 1) % 30; // Cycle between 0-11 dots
+                    const dots = '.'.repeat(dotCount);
+                    
+                    // After 5 seconds, change the message
+                    const elapsedTime = Date.now() - startTime;
+                    if (elapsedTime > 6000 && !longLoadMessage) {
+                        longLoadMessage = true;
+                    }
+                    
+                    const message = longLoadMessage ? "It's a big boy, hold tight" : "Loading Video";
+                    status2Div.textContent = `${dots}${message}${dots}`;
+                }, 200);
+            }
+            
+            // Function to stop the loading animation
+            function stopLoadingAnimation() {
+                if (loadingAnimationInterval) {
+                    clearInterval(loadingAnimationInterval);
+                    loadingAnimationInterval = null;
+                    document.getElementById('status2').textContent = '';
+                }
+            }
+            
+            // Override the onloadeddata event to stop animation when complete
+            const originalOnLoadedData = video.onloadeddata;
+            video.onloadeddata = function() {
+                stopLoadingAnimation();
+                if (originalOnLoadedData) {
+                    originalOnLoadedData.call(this);
+                }
+            };
+            
             // Function to attempt video loading with fetch first
             const loadVideo = async () => {
                 try {
+                    // Start the loading animation
+                    startLoadingAnimation();
+                    
                     // Fetch the video first with proper CORS settings
                     const response = await fetch(videoUrl, {
                         mode: 'cors',
@@ -959,6 +1072,9 @@
                     video.src = blobUrl;
                     
                     video.onerror = () => {
+                        // Stop the loading animation
+                        stopLoadingAnimation();
+                        
                         const errorMessage = video.error?.code ? 
                             `Error loading video (code ${video.error.code}): ${video.error?.message || 'Unknown error'}` : 
                             'Error loading video';
@@ -969,6 +1085,9 @@
 
                     // Add load event handler
                     video.onloadeddata = () => {
+                        // Stop the loading animation
+                        stopLoadingAnimation();
+                        
                         statusDiv.textContent = 'Video loaded successfully';
                         statusDiv.style.color = '#44ff44';
                         // Re-enable FFmpeg button if FFmpeg is initialized
@@ -993,11 +1112,27 @@
                         }
                     };
                 } catch (error) {
+                    // Stop the loading animation
+                    stopLoadingAnimation();
+                    
                     console.error('Error fetching video:', error);
                     displayError(`Error fetching video: ${error.message}`);
                     
+                    // Start a new loading animation for the fallback method
+                    startLoadingAnimation();
+                    
                     // Fallback to direct video source if fetch fails
                     video.src = videoUrl;
+                    
+                    // Add error handler for fallback method
+                    video.onerror = () => {
+                        stopLoadingAnimation();
+                        const errorMessage = video.error?.code ? 
+                            `Error loading video (code ${video.error.code}): ${video.error?.message || 'Unknown error'}` : 
+                            'Error loading video';
+                        displayError(errorMessage);
+                        console.error('Video error details:', video.error);
+                    };
                 }
             };
 
@@ -1306,6 +1441,33 @@
                 
                 // Also update the render button text
                 updateRenderButtonText();
+                
+                // Check credits whenever the cost is updated (without showing alerts)
+                // Only proceed if the user is logged in
+                if (window.getCurrentUser()) {
+                    // Get the user's credits from the header-credits element
+                    const headerCredits = document.getElementById('headerCredits');
+                    let userCredits = 0;
+                    
+                    if (headerCredits) {
+                        userCredits = parseInt(headerCredits.textContent) || 0;
+                    }
+                    
+                    // Determine if user has enough credits
+                    const hasEnoughCredits = userCredits >= costs.totalCost;
+                    
+                    // Log the credit information to the console
+                    console.log(`Credit check: User has ${userCredits} credits, this render costs ${costs.totalCost} credits. User is ${hasEnoughCredits ? 'able' : 'unable'} to render this video.`);
+                    
+                    // Update the render button style based on credit availability
+                    if (ffmpegButton) {
+                        if (hasEnoughCredits) {
+                            ffmpegButton.classList.remove('insufficient-credits');
+                        } else {
+                            ffmpegButton.classList.add('insufficient-credits');
+                        }
+                    }
+                }
             }
 
             // Function to clear selected state from all resolution buttons
@@ -1332,13 +1494,84 @@
                 }
                 
                 if (ffmpegState.ffmpeg && ffmpegState.ffmpeg.isLoaded()) {
-                    if (renderSettings.isGif) {
-                        renderAsGIF(renderSettings.resolution, ffmpegSpinner, renderSettings.gifSize);
-                    } else {
-                        renderWithFFmpeg(renderSettings.resolution, ffmpegSpinner);
+                    // Check if user has enough credits to render video
+                    console.log('Checking if user has enough credits to render video');
+                    const checkResult = await checkRenderCredits();
+                    if (!checkResult || !checkResult.success) {
+                        return; // Stop if user doesn't have enough credits
+                    }
+                    
+                    // Only deduct credits when actually rendering
+                    try {
+                        // This call updates the credits in the Supabase database directly through the userService
+                        console.log(`Deducting ${checkResult.cost} credits from user ${window.getCurrentUser().id} in Supabase database...`);
+                        const result = await window.userService.useCredits(window.getCurrentUser().id, checkResult.cost);
+                        
+                        if (!result || !result.success) {
+                            console.error('Failed to deduct credits from Supabase:', result?.message || 'Unknown error');
+                            alert('Error processing your credits. Please try again later.');
+                            return;
+                        }
+                        
+                        // After updating Supabase, also update the UI to reflect the new credit count
+                        const headerCredits = document.getElementById('headerCredits');
+                        const newCredits = checkResult.credits - checkResult.cost;
+                        if (headerCredits) {
+                            headerCredits.textContent = `${newCredits}`;
+                        }
+                        
+                        console.log(`Successfully deducted ${checkResult.cost} credits in Supabase. Remaining credits: ${newCredits}`);
+                        
+                        // Now proceed with rendering
+                        if (renderSettings.isGif) {
+                            renderAsGIF(renderSettings.resolution, ffmpegSpinner, renderSettings.gifSize);
+                        } else {
+                            renderWithFFmpeg(renderSettings.resolution, ffmpegSpinner);
+                        }
+                    } catch (error) {
+                        console.error('Error while deducting credits:', error);
+                        alert('Error processing your credits. Please try again later.');
                     }
                 }
             });
+
+            // Function to check if user has enough credits to render video
+            async function checkRenderCredits() {
+                // Get the current user
+                const currentUser = window.getCurrentUser();
+                
+                // If user is not logged in, show an error
+                if (!currentUser) {
+                    alert('Please log in to render videos');
+                    return { success: false, message: 'Not logged in' };
+                }
+                
+                // Get the user's credits from the header-credits element
+                const headerCredits = document.getElementById('headerCredits');
+                let userCredits = 0;
+                
+                if (headerCredits) {
+                    userCredits = parseInt(headerCredits.textContent) || 0;
+                }
+                
+                // Get the cost of the current render
+                const costs = calculateCreditCosts();
+                const renderCost = costs.totalCost;
+                
+                // Log the credit information to the console
+                const hasEnoughCredits = userCredits >= renderCost;
+                console.log(`User has ${userCredits} credits, this render costs ${renderCost} credits. User is ${hasEnoughCredits ? 'able' : 'unable'} to render this video.`);
+                
+                // If user doesn't have enough credits, show an error
+                if (!hasEnoughCredits) {
+                    alert(`You don't have enough credits to render this video. You have ${userCredits} credits, but this render requires ${renderCost} credits.`);
+                    return { success: false, message: 'Not enough credits' };
+                }
+                
+                // Only return that the check passed - don't deduct credits here
+                // Credits will be deducted in the actual render function
+                return { success: true, credits: userCredits, cost: renderCost };
+            }
 
             ffmpegButtonSD.addEventListener('click', () => {
                 clearSelectedButtons();
@@ -1400,6 +1633,27 @@
             
             // Initialize video playback setup
             setupVideoPlayback();
+            
+            // Add this function to check credits after the video and page have loaded
+            function checkCreditsOnLoad() {
+                // Check if video and all required elements are loaded
+                if (video && video.readyState >= 2 && calculateCreditCosts) {
+                    console.log('Page loaded, checking credits availability');
+                    // Only check if user has credits, don't deduct them
+                    checkRenderCredits().then(result => {
+                        console.log('Initial credit check completed:', result);
+                        // No need to do anything, this is just a check
+                    }).catch(error => {
+                        console.error('Error checking credits on load:', error);
+                    });
+                } else {
+                    // Try again in a short moment if video isn't ready yet
+                    setTimeout(checkCreditsOnLoad, 1000);
+                }
+            }
+
+            // Start checking credits after a short delay to ensure everything is loaded
+            setTimeout(checkCreditsOnLoad, 2000);
             
             // Attempt to fetch and process JSON data
             fetch(jsonSource, {
@@ -3097,6 +3351,27 @@
             video.addEventListener('canplaythrough', function() {
                 updateTallyInformation();
             });
+
+            // Add this function to check credits after the video and page have loaded
+            function checkCreditsOnLoad() {
+                // Check if video and all required elements are loaded
+                if (video && video.readyState >= 2 && calculateCreditCosts) {
+                    console.log('Page loaded, checking credits availability');
+                    // Only check if user has credits, don't deduct them
+                    checkRenderCredits().then(result => {
+                        console.log('Initial credit check completed:', result);
+                        // No need to do anything, this is just a check
+                    }).catch(error => {
+                        console.error('Error checking credits on load:', error);
+                    });
+                } else {
+                    // Try again in a short moment if video isn't ready yet
+                    setTimeout(checkCreditsOnLoad, 1000);
+                }
+            }
+
+            // Start checking credits after a short delay to ensure everything is loaded
+            setTimeout(checkCreditsOnLoad, 2000);
         });
     </script>
     
@@ -3104,6 +3379,7 @@
     <script type="module">
         import { supabase } from './src/supabase.js';
         import { auth } from './src/auth.js';
+        import { userService } from './src/userService.js';
 
         // DOM Elements
         const authModal = document.getElementById('authModal');
@@ -3233,11 +3509,31 @@
         function updateUIForLoggedInUser() {
             authBtn.textContent = 'Log Out';
             profileBtn.style.display = 'block';
+            
+            // Fetch and display user credits
+            if (currentUser) {
+                // Try to fetch and display user credits
+                userService.getUserData(currentUser.id).then(userData => {
+                    const headerCredits = document.getElementById('headerCredits');
+                    if (headerCredits && userData) {
+                        const credits = userData.credits || 0;
+                        headerCredits.textContent = `${credits}`;
+                    }
+                }).catch(error => {
+                    console.error('Error fetching user credits in UI update:', error);
+                });
+            }
         }
 
         function updateUIForLoggedOutUser() {
             authBtn.textContent = 'Log In';
             profileBtn.style.display = 'none';
+            
+            // Reset header credits display
+            const headerCredits = document.getElementById('headerCredits');
+            if (headerCredits) {
+                headerCredits.textContent = '0';
+            }
         }
 
         // Auth Modal Controls
