@@ -1,0 +1,1 @@
+console.log("infoPages.js loaded");

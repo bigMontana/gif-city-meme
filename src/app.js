@@ -130,20 +130,17 @@ tabs.forEach(tab => {
 });
 
 // Button click handlers
-uploadBtn.addEventListener('click', () => {
-    console.log('Upload button clicked');
-    // Implement upload functionality
-});
+// uploadBtn.addEventListener('click', () => {
+//     console.log('Upload button clicked');
+// });
 
-createBtn.addEventListener('click', () => {
-    console.log('Create button clicked');
-    // Implement create functionality
-});
+// createBtn.addEventListener('click', () => {
+//     console.log('Create button clicked');
+// });
 
-loginBtn.addEventListener('click', () => {
-    console.log('Login button clicked');
-    // Implement login functionality
-});
+// loginBtn.addEventListener('click', () => {
+//     console.log('Login button clicked');
+// });
 
 // Initialize any necessary features
 document.addEventListener('DOMContentLoaded', async () => {
