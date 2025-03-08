@@ -177,7 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
             // Define currentFrameData here to fix the reference error
             const currentFrameData = face.frameData[Math.floor(currentFrame)];
             
-            if (face.overlayImage && face.overlayImage.complete && data) {
+            // Add check for valid image before attempting to draw
+            if (face.overlayImage && face.overlayImage.complete && face.overlayImage.naturalWidth > 0 && data) {
                 // Skip drawing if face is hidden
                 if (data.hidden) return;
 
@@ -201,33 +202,47 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set global alpha to 0.5 before drawing the face image
                 ctx.globalAlpha = 0.5;
                 
-                // Draw the overlay image with respect to aspect ratio
-                if (face.overlayImage.naturalWidth && face.overlayImage.naturalHeight) {
-                    const imgWidth = face.overlayImage.naturalWidth;
-                    const imgHeight = face.overlayImage.naturalHeight;
-                    const imgAspect = imgWidth / imgHeight;
-                    
-                    let drawWidth, drawHeight, offsetX, offsetY;
-                    
-                    if (imgAspect > 1) {
-                        // Landscape image - use full width, adjust height
-                        drawWidth = faceSize;
-                        drawHeight = faceSize / imgAspect;
-                        offsetX = -halfFaceSize;
-                        offsetY = -drawHeight / 2;
+                try {
+                    // Draw the overlay image with respect to aspect ratio
+                    if (face.overlayImage.naturalWidth && face.overlayImage.naturalHeight) {
+                        const imgWidth = face.overlayImage.naturalWidth;
+                        const imgHeight = face.overlayImage.naturalHeight;
+                        const imgAspect = imgWidth / imgHeight;
+                        
+                        let drawWidth, drawHeight, offsetX, offsetY;
+                        
+                        if (imgAspect > 1) {
+                            // Landscape image - use full width, adjust height
+                            drawWidth = faceSize;
+                            drawHeight = faceSize / imgAspect;
+                            offsetX = -halfFaceSize;
+                            offsetY = -drawHeight / 2;
+                        } else {
+                            // Portrait or square image - use full height, adjust width
+                            drawHeight = faceSize;
+                            drawWidth = faceSize * imgAspect;
+                            offsetX = -drawWidth / 2;
+                            offsetY = -halfFaceSize;
+                        }
+                        
+                        // Draw the face image with proper aspect ratio
+                        ctx.drawImage(face.overlayImage, offsetX, offsetY, drawWidth, drawHeight);
                     } else {
-                        // Portrait or square image - use full height, adjust width
-                        drawHeight = faceSize;
-                        drawWidth = faceSize * imgAspect;
-                        offsetX = -drawWidth / 2;
-                        offsetY = -halfFaceSize;
+                        // Fallback to square if dimensions aren't available
+                        ctx.drawImage(face.overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
                     }
+                } catch (error) {
+                    console.warn(`Error drawing face ${faceId} image:`, error);
+                    // Just draw a placeholder instead of the broken image
+                    ctx.fillStyle = face.color;
+                    ctx.globalAlpha = 1.0;
+                    ctx.fillRect(-halfFaceSize, -halfFaceSize, faceSize, faceSize);
                     
-                    // Draw the face image with proper aspect ratio
-                    ctx.drawImage(face.overlayImage, offsetX, offsetY, drawWidth, drawHeight);
-                } else {
-                    // Fallback to square if dimensions aren't available
-                    ctx.drawImage(face.overlayImage, -halfFaceSize, -halfFaceSize, faceSize, faceSize);
+                    // Add text indicating broken image
+                    ctx.fillStyle = '#ffffff';
+                    ctx.font = `${faceSize/8}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText('Image Error', 0, 0);
                 }
                 
                 // Reset global alpha back to 1.0 for other drawings
@@ -257,10 +272,15 @@ document.addEventListener('DOMContentLoaded', () => {
                         currentFrameData.maskImage.src = currentFrameData.maskDataURL;
                         currentFrameData.maskImage.onload = () => drawFrame();
                     } else if (currentFrameData.maskImage.complete) {
-                        // Apply the mask as a cutout (invert the behavior)
-                        ctx.globalCompositeOperation = 'destination-out';
-                        ctx.drawImage(currentFrameData.maskImage, -100, -100, 200, 200);
-                        ctx.globalCompositeOperation = 'source-over';
+                        try {
+                            // Apply the mask as a cutout (invert the behavior)
+                            ctx.globalCompositeOperation = 'destination-out';
+                            ctx.drawImage(currentFrameData.maskImage, -100, -100, 200, 200);
+                            ctx.globalCompositeOperation = 'source-over';
+                        } catch (error) {
+                            console.warn(`Error drawing mask for face ${faceId}:`, error);
+                            ctx.globalCompositeOperation = 'source-over';
+                        }
                     }
                 }
                 
@@ -269,25 +289,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Draw logo if needed
-        if (logoImage.complete) {
-            const logoWidth = Math.round(canvas.width * 0.12);  // 12% of video width
-            const padding = Math.round(canvas.width * 0.02); // 2% of video width for padding
-            const logoHeight = logoWidth * (logoImage.naturalHeight / logoImage.naturalWidth);
-            
-            // Set up shadow
-            ctx.save();
-            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            ctx.shadowBlur = 20;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 5;
-            
-            ctx.drawImage(logoImage, 
-                padding, // Left padding
-                canvas.height - logoHeight - padding, // Bottom padding
-                logoWidth,
-                logoHeight
-            );
-            ctx.restore();
+        if (logoImage.complete && logoImage.naturalWidth > 0) {
+            try {
+                const logoWidth = Math.round(canvas.width * 0.12);  // 12% of video width
+                const padding = Math.round(canvas.width * 0.02); // 2% of video width for padding
+                const logoHeight = logoWidth * (logoImage.naturalHeight / logoImage.naturalWidth);
+                
+                // Set up shadow
+                ctx.save();
+                ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+                ctx.shadowBlur = 20;
+                ctx.shadowOffsetX = 5;
+                ctx.shadowOffsetY = 5;
+                
+                ctx.drawImage(logoImage, 
+                    padding, // Left padding
+                    canvas.height - logoHeight - padding, // Bottom padding
+                    logoWidth,
+                    logoHeight
+                );
+                ctx.restore();
+            } catch (error) {
+                console.warn('Error drawing logo:', error);
+            }
         }
     }
 
@@ -927,6 +951,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const saveButton = document.getElementById('saveSquareData');
         saveButton.textContent = `Save Face ${currentFace.replace('face', '')} Data`;
         saveButton.style.backgroundColor = solidColor;
+        
+        // Specifically update the toggle face button
+        const toggleFaceButton = document.getElementById('toggleFace');
+        toggleFaceButton.style.backgroundColor = color;
+        // Use white or black text depending on the background color brightness
+        const colorValues = color.match(/\d+/g);
+        if (colorValues && colorValues.length >= 3) {
+            const brightness = (parseInt(colorValues[0]) * 299 + parseInt(colorValues[1]) * 587 + parseInt(colorValues[2]) * 114) / 1000;
+            toggleFaceButton.style.color = brightness > 128 ? 'black' : 'white';
+        }
     }
 
     // Update initial UI colors
@@ -1378,7 +1412,19 @@ document.addEventListener('DOMContentLoaded', () => {
         const nextIndex = (currentIndex + 1) % faceIds.length;
         currentFace = faceIds[nextIndex];
         
+        // Update button text
         toggleFaceButton.textContent = `Face ${currentFace.replace('face', '')}`;
+        
+        // Update button background color to match face color
+        const faceColor = faces[currentFace].color;
+        toggleFaceButton.style.backgroundColor = faceColor;
+        // Use white or black text depending on the background color brightness
+        const colorValues = faceColor.match(/\d+/g);
+        if (colorValues && colorValues.length >= 3) {
+            const brightness = (parseInt(colorValues[0]) * 299 + parseInt(colorValues[1]) * 587 + parseInt(colorValues[2]) * 114) / 1000;
+            toggleFaceButton.style.color = brightness > 128 ? 'black' : 'white';
+        }
+        
         updateControlsFromData(faces[currentFace].frameData[Math.floor(currentFrame)]);
         updateUIColors();
         updateUsedImageNames();

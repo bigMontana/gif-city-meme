@@ -30,967 +30,182 @@
             
             <!-- Face Quota Container -->
             <div class="face-quota-container">
-                <div class="face-quota-title">Your Faces (<span id="faceQuotaCount">0</span>)</div>
+                <div class="face-quota-title">Saved Face Slots (<span id="faceQuotaCount">0</span>)</div>
                 <div class="face-buttons-container" id="faceButtonsContainer">
-                    <!-- Face buttons will be generated dynamically -->
+                </div>
+                <div class="unlockFacesButton">
+                    <button id="unlockFacesButton">Unlock 10 Face Slots for 250 Credits</button>
                 </div>
             </div>
         </div>
 
-        <div class="footer">
-            <div class="footer-links">
-                <a href="#">About</a>
-                <a href="#">Terms</a>
-                <a href="#">Privacy</a>
-            </div>
-            <div class="logo">
-                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
-            </div>
-        </div>
+        <div id="footer-container"></div>
     </div>
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
     <script type="module" src="/src/supabase.js"></script>
-    <!-- <script type="module">
-        import { supabase } from './src/supabase.js';
-        import { auth } from './src/auth.js';
-        import { SUBSCRIPTION_TIERS, TIER_LIMITS } from './src/constants.js';
-        import { subscriptionService } from './src/subscriptionService.js';
-        import { userService } from './src/userService.js';
-
-        // DOM Elements
-        const authModal = document.getElementById('authModal');
-        const closeBtn = document.querySelector('.close');
-        const authBtn = document.getElementById('authBtn');
-        const profileBtn = document.getElementById('profileBtn');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-
-        // Auth state management
-        let currentUser = null;
-
-        // Check initial auth state
-        async function checkInitialAuthState() {
-            const { session, error } = await auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                updateUIForLoggedInUser();
-                // Fetch and display user profile data including face_quota
-                await fetchUserProfileData();
-                console.log('User is logged in:', currentUser.email);
-            } else {
-                updateUIForLoggedOutUser();
-                console.log('No user session found');
-            }
-        }
-
-        // Check initial auth state 
-        checkInitialAuthState();
-
-        // Listen for auth changes
-        const authListener = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event);
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                currentUser = session.user;
-                updateUIForLoggedInUser();
-                // Also fetch profile data when auth state changes
-                fetchUserProfileData();
-                console.log('User signed in:', currentUser.email);
-            } else if (event === 'SIGNED_OUT') {
-                currentUser = null;
-                updateUIForLoggedOutUser();
-                console.log('User signed out');
-            }
-        });
-
-        // Function to fetch user profile data including face_quota
-        async function fetchUserProfileData() {
-            if (!currentUser) return;
-            
-            try {
-                // Fetch user profile data from users table instead of profiles table
-                const { data, error } = await supabase
-                    .from('users')
-                    .select('*')
-                    .eq('id', currentUser.id)
-                    .single();
-                
-                if (error) {
-                    console.error('Error fetching profile data:', error);
-                    // Generate default buttons even when profile fetch fails
-                    updateFaceQuotaDisplay(3);
-                    generateFaceButtons();
-                    return;
-                }
-                
-                if (data) {
-                    // Calculate membership duration in days
-                    const createdAt = data.created_at || currentUser.created_at;
-                    let membershipDays = 0;
-                    
-                    if (createdAt) {
-                        const signupDate = new Date(createdAt);
-                        const today = new Date();
-                        const timeDiff = today.getTime() - signupDate.getTime();
-                        membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
-                    }
-                    
-                    // Update membership duration display
-                    const profileSubscription = document.getElementById('profileSubscription');
-                    if (profileSubscription) {
-                        profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
-                    }
-                    
-                    // Fetch user credits
-                    try {
-                        const userData = await userService.getUserData(currentUser.id, true);
-                        // Update credits display
-                        const profileCredits = document.getElementById('profileCredits');
-                        if (profileCredits && userData) {
-                            const credits = userData.credits || 0;
-                            profileCredits.textContent = `CREDITS: ${credits}`;
-                            
-                            // Also update header credits display
-                            const headerCredits = document.getElementById('headerCredits');
-                            if (headerCredits) {
-                                headerCredits.textContent = `${credits}`;
-                            }
-                        }
-                    } catch (creditsError) {
-                        console.error('Error fetching user credits:', creditsError);
-                        // Display default credits if there's an error
-                        const profileCredits = document.getElementById('profileCredits');
-                        if (profileCredits) {
-                            profileCredits.textContent = '0';
-                        }
-                    }
-                    
-                    // Get face count from the database
-                    const faceCount = data.face_count || 0;
-                    
-                    // Determine how many face slots to show based on paid status
-                    // Free users get 3 slots, paid users get more
-                    const displaySlots = data.is_paid ? 10 : 3;
-                    
-                    // Update face quota display to show available slots
-                    updateFaceQuotaDisplay(displaySlots, faceCount);
-                    
-                    // Generate face buttons
-                    generateFaceButtons(displaySlots);
-                    
-                    // Add a small delay before loading face images
-                    setTimeout(() => {
-                        console.log('Loading existing face images with delay...');
-                        loadExistingFaceImages();
-                    }, 100);
-                } else {
-                    // If no data, still show default buttons
-                    updateFaceQuotaDisplay(3);
-                    generateFaceButtons(3);
-                }
-            } catch (error) {
-                console.error('Exception fetching profile data:', error);
-                // Generate default buttons even when there's an exception
-                updateFaceQuotaDisplay(3);
-                generateFaceButtons(3);
-            }
-        }
-        
-        // Helper function to update face quota display
-        function updateFaceQuotaDisplay(totalSlots, faceCount = 0) {
-            const faceQuotaCount = document.getElementById('faceQuotaCount');
-            if (faceQuotaCount) {
-                faceQuotaCount.textContent = totalSlots;
-            }
-            
-            // Also update the title to show both total slots and used count
-            const faceQuotaTitle = document.querySelector('.face-quota-title');
-            if (faceQuotaTitle) {
-                // Create a more informative title that shows usage without tier information
-                let titleText = `Your Face Slots (<span id="faceQuotaCount">${totalSlots}</span> available, ${faceCount} used)`;
-                
-                faceQuotaTitle.innerHTML = titleText;
-            }
-        }
-
-        // Function to generate face buttons based on face_quota
-        function generateFaceButtons(faceSlots) {
-            // Ensure we have a valid number, default to 3 if not
-            faceSlots = faceSlots || 3;
-            
-            const container = document.getElementById('faceButtonsContainer');
-            if (!container) return;
-            
-            // Clear existing buttons
-            container.innerHTML = '';
-            
-            console.log(`Generating ${faceSlots} face buttons`);
-            
-            // Generate new buttons
-            for (let i = 1; i <= faceSlots; i++) {
-                const button = document.createElement('div');
-                button.className = 'face-button';
-                button.dataset.faceNumber = i;
-                
-                // Create image element for face
-                const imageElement = document.createElement('img');
-                imageElement.alt = `Face ${i}`;
-                imageElement.className = 'face-image';
-                // Set crossOrigin attribute to fix CORS issues
-                imageElement.crossOrigin = "anonymous";
-                
-                // Set a placeholder image
-                imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
-                    <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="100%" height="100%" fill="#444444"/>
-                        <text x="50%" y="50%" font-family="Arial" font-size="12" 
-                            fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
-                    </svg>
-                `);
-                
-                // Create number label
-                const numberDisplay = document.createElement('div');
-                numberDisplay.className = 'face-button-number';
-                numberDisplay.textContent = i;
-                
-                // Create delete button
-                const deleteBtn = document.createElement('button');
-                deleteBtn.className = 'face-delete-btn';
-                deleteBtn.innerHTML = '×';
-                deleteBtn.title = 'Remove face image';
-                deleteBtn.style.display = 'none';
-                
-                // Add loading indicator
-                const loadingIndicator = document.createElement('div');
-                loadingIndicator.className = 'face-loading';
-                loadingIndicator.innerHTML = '<div class="spinner"></div>';
-                loadingIndicator.style.display = 'none';
-                
-                // Create file input for image upload
-                const fileInput = document.createElement('input');
-                fileInput.type = 'file';
-                fileInput.className = 'face-input';
-                fileInput.accept = 'image/*';
-                fileInput.dataset.faceNumber = i;
-                
-                // Add click event to button to trigger file input
-                button.addEventListener('click', () => {
-                    // Only trigger file dialog if not currently uploading
-                    if (loadingIndicator.style.display !== 'flex') {
-                        fileInput.click();
-                    }
-                });
-                
-                // Add change event to file input
-                fileInput.addEventListener('change', async (e) => {
-                    if (e.target.files && e.target.files[0]) {
-                        const file = e.target.files[0];
-                        
-                        // Show loading indicator
-                        loadingIndicator.style.display = 'flex';
-                        
-                        try {
-                            // Create a temporary preview
-                            const reader = new FileReader();
-                            reader.onload = (event) => {
-                                imageElement.src = event.target.result;
-                            };
-                            reader.readAsDataURL(file);
-                            
-                            // Upload the image to Supabase storage
-                            await uploadFaceImage(file, i, button);
-                            
-                            // Update UI to show delete button
-                            deleteBtn.style.display = 'flex';
-                        } catch (error) {
-                            console.error('Error uploading face image:', error);
-                            alert('Error uploading face image: ' + error.message);
-                            
-                            // Reset to placeholder on error
-                            imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
-                                <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-                                    <rect width="100%" height="100%" fill="#444444"/>
-                                    <text x="50%" y="50%" font-family="Arial" font-size="12" 
-                                        fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
-                                </svg>
-                            `);
-                        } finally {
-                            // Hide loading indicator
-                            loadingIndicator.style.display = 'none';
-                        }
-                    }
-                });
-                
-                // Add click event to delete button
-                deleteBtn.addEventListener('click', async (e) => {
-                    e.stopPropagation(); // Prevent button click event from triggering file upload
-                    
-                    // Show loading indicator
-                    loadingIndicator.style.display = 'flex';
-                    deleteBtn.style.display = 'none';
-                    
-                    try {
-                        // Delete the image from Supabase
-                        await deleteFaceImage(i);
-                        
-                        // Reset to placeholder image
-                        imageElement.src = 'data:image/svg+xml,' + encodeURIComponent(`
-                            <svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
-                                <rect width="100%" height="100%" fill="#444444"/>
-                                <text x="50%" y="50%" font-family="Arial" font-size="12" 
-                                    fill="#aaaaaa" text-anchor="middle" dy=".3em">Click to Upload</text>
-                            </svg>
-                        `);
-                        
-                        // Clear file input
-                        fileInput.value = '';
-                    } catch (error) {
-                        console.error('Error deleting face image:', error);
-                        alert('Error deleting face image: ' + error.message);
-                        
-                        // Show delete button again if deletion failed
-                        deleteBtn.style.display = 'flex';
-                    } finally {
-                        // Hide loading indicator
-                        loadingIndicator.style.display = 'none';
-                    }
-                });
-                
-                // Add elements to button
-                button.appendChild(imageElement);
-                button.appendChild(numberDisplay);
-                button.appendChild(deleteBtn);
-                button.appendChild(fileInput);
-                button.appendChild(loadingIndicator);
-                
-                // Add button to container
-                container.appendChild(button);
-            }
-            
-            // Restore the direct call to load existing face images
-            loadExistingFaceImages();
-        }
-
-        // Function to upload face image to Supabase storage
-        async function uploadFaceImage(file, faceNumber, buttonElement) {
-            if (!currentUser) {
-                throw new Error('You must be logged in to upload face images');
-            }
-            
-            try {
-                // Generate a unique file path
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${currentUser.id}_face${faceNumber}_${Date.now()}.${fileExt}`;
-                const filePath = `${currentUser.id}/${fileName}`;
-                
-                // Upload file to Supabase Storage
-                const { data: uploadData, error: uploadError } = await supabase.storage
-                    .from('user_faces')
-                    .upload(filePath, file, {
-                        cacheControl: '3600',
-                        upsert: true
-                    });
-                
-                if (uploadError) {
-                    throw uploadError;
-                }
-                
-                // Get public URL for the uploaded file
-                const { data: publicUrlData } = await supabase.storage
-                    .from('user_faces')
-                    .getPublicUrl(filePath);
-                
-                if (!publicUrlData || !publicUrlData.publicUrl) {
-                    throw new Error('Failed to get public URL for uploaded image');
-                }
-                
-                const imageUrl = publicUrlData.publicUrl;
-                
-                // Insert or update record in user_faces table
-                // First, check if a record already exists
-                const { data: existingRecord, error: queryError } = await supabase
-                    .from('user_faces')
-                    .select('id, face_path')
-                    .eq('user_id', currentUser.id)
-                    .eq('face_number', faceNumber)
-                    .maybeSingle();
-                
-                if (queryError) {
-                    throw queryError;
-                }
-                
-                let insertError = null;
-                
-                if (existingRecord) {
-                    // Delete the old file from storage if it exists
-                    if (existingRecord.face_path) {
-                        try {
-                            await supabase.storage
-                                .from('user_faces')
-                                .remove([existingRecord.face_path]);
-                        } catch (removeError) {
-                            console.warn('Could not remove old face image:', removeError);
-                            // Continue with update even if old file removal fails
-                        }
-                    }
-                    
-                    // Update existing record
-                    const { error: updateError } = await supabase
-                        .from('user_faces')
-                        .update({ face_path: filePath })
-                        .eq('id', existingRecord.id);
-                    
-                    insertError = updateError;
-                } else {
-                    // Insert new record
-                    const { error: insertNewError } = await supabase
-                        .from('user_faces')
-                        .insert([
-                            {
-                                user_id: currentUser.id,
-                                face_path: filePath,
-                                face_number: faceNumber
-                            }
-                        ]);
-                    
-                    insertError = insertNewError;
-                }
-                
-                if (insertError) {
-                    throw insertError;
-                }
-                
-                // Find image element and update with public URL
-                const imageElement = buttonElement.querySelector('img');
-                if (imageElement) {
-                    // Set crossOrigin before setting the src to handle CORS
-                    imageElement.crossOrigin = "anonymous";
-                    imageElement.src = imageUrl;
-                }
-                
-                // Update face_count in users table
-                await updateFaceCount();
-                
-                console.log('Face image uploaded and saved successfully');
-                
-                // Invalidate the faces cache
-                window.invalidateFacesCache && window.invalidateFacesCache();
-                
-                // Update face_count in users table
-                await updateFaceCount();
-                
-                // Return success
-                return true;
-            } catch (error) {
-                console.error('Error in uploadFaceImage:', error);
-                throw error;
-            }
-        }
-
-        // Function to delete a face image
-        async function deleteFaceImage(faceNumber) {
-            if (!currentUser) {
-                throw new Error('You must be logged in to delete face images');
-            }
-            
-            try {
-                // Get the record to find the file path
-                const { data: faceData, error: queryError } = await supabase
-                    .from('user_faces')
-                    .select('face_path')
-                    .eq('user_id', currentUser.id)
-                    .eq('face_number', faceNumber)
-                    .maybeSingle();
-                
-                if (queryError) {
-                    throw queryError;
-                }
-                
-                if (faceData && faceData.face_path) {
-                    // Delete the file from storage
-                    const { error: deleteStorageError } = await supabase.storage
-                        .from('user_faces')
-                        .remove([faceData.face_path]);
-                    
-                    if (deleteStorageError) {
-                        throw deleteStorageError;
-                    }
-                }
-                
-                // Delete the record from user_faces table
-                const { error: deleteRecordError } = await supabase
-                    .from('user_faces')
-                    .delete()
-                    .eq('user_id', currentUser.id)
-                    .eq('face_number', faceNumber);
-                
-                if (deleteRecordError) {
-                    throw deleteRecordError;
-                }
-                
-                // Update face_count in users table
-                await updateFaceCount();
-                
-                // Invalidate the faces cache
-                window.invalidateFacesCache && window.invalidateFacesCache();
-                
-                console.log('Face image deleted successfully');
-            } catch (error) {
-                console.error('Error in deleteFaceImage:', error);
-                throw error;
-            }
-        }
-
-        // Function to update the face_count in the users table
-        async function updateFaceCount() {
-            if (!currentUser) return;
-            
-            try {
-                // Count the user's faces
-                const { data, error: countError } = await supabase
-                    .from('user_faces')
-                    .select('id', { count: 'exact' })
-                    .eq('user_id', currentUser.id);
-                
-                if (countError) {
-                    throw countError;
-                }
-                
-                const faceCount = data?.length || 0;
-                
-                // Update the face_count in users table
-                const { error: updateError } = await supabase
-                    .from('users')
-                    .update({ face_count: faceCount })
-                    .eq('id', currentUser.id);
-                
-                if (updateError) {
-                    throw updateError;
-                }
-                
-                console.log('Updated face_count to', faceCount);
-            } catch (error) {
-                console.error('Error updating face_count:', error);
-            }
-        }
-
-        // Function to load existing face images from Supabase
-        async function loadExistingFaceImages() {
-            if (!currentUser) return;
-            
-            try {
-                // Fetch existing face images from user_faces table
-                const { data, error } = await supabase
-                    .from('user_faces')
-                    .select('*')
-                    .eq('user_id', currentUser.id);
-                
-                if (error) {
-                    console.error('Error fetching face images:', error);
-                    return;
-                }
-                
-                if (data && data.length > 0) {
-                    console.log('Found existing face images:', data.length);
-                    
-                    // Process each face image
-                    for (const face of data) {
-                        const faceNumber = face.face_number;
-                        const facePath = face.face_path;
-                        
-                        if (faceNumber && facePath) {
-                            // Get the public URL for this face image
-                            const { data: urlData } = await supabase.storage
-                                .from('user_faces')
-                                .getPublicUrl(facePath);
-                            
-                            if (urlData && urlData.publicUrl) {
-                                // Find the corresponding face button
-                                const button = document.querySelector(`.face-button[data-face-number="${faceNumber}"]`);
-                                if (button) {
-                                    const imageElement = button.querySelector('img');
-                                    const deleteBtn = button.querySelector('.face-delete-btn');
-                                    
-                                    if (imageElement) {
-                                        // Add crossOrigin attribute before setting src
-                                        imageElement.crossOrigin = "anonymous";
-                                        // Update the button to show the existing image
-                                        imageElement.src = urlData.publicUrl;
-                                        console.log(`Loaded face ${faceNumber} image:`, urlData.publicUrl);
-                                    }
-                                    
-                                    if (deleteBtn) {
-                                        deleteBtn.style.display = 'flex';
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    console.log('No existing face images found');
-                }
-            } catch (error) {
-                console.error('Exception fetching face images:', error);
-            }
-        }
-
-        // UI Updates
-        function updateUIForLoggedInUser() {
-            authBtn.textContent = 'Log Out';
-            profileBtn.style.display = 'block';
-            
-            // Update profile information if available
-            if (currentUser) {
-                // Update email
-                const profileEmail = document.getElementById('profileEmail');
-                if (profileEmail) {
-                    profileEmail.textContent = currentUser.email || 'No email available';
-                }
-                
-                // Update username (from user metadata if available)
-                const profileUsername = document.getElementById('profileUsername');
-                if (profileUsername) {
-                    // Try to get username from metadata or use email as fallback
-                    const userMeta = currentUser.user_metadata;
-                    profileUsername.textContent = 
-                        (userMeta && userMeta.username) ? 
-                        userMeta.username : 
-                        currentUser.email.split('@')[0];
-                }
-                
-                // Calculate membership duration
-                const createdAt = currentUser.created_at;
-                let membershipDays = 0;
-                
-                if (createdAt) {
-                    const signupDate = new Date(createdAt);
-                    const today = new Date();
-                    const timeDiff = today.getTime() - signupDate.getTime();
-                    membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
-                }
-                
-                // Update membership duration display
-                const profileSubscription = document.getElementById('profileSubscription');
-                if (profileSubscription) {
-                    profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
-                }
-                
-                // Also try to fetch and display user credits
-                userService.getUserData(currentUser.id).then(userData => {
-                    const profileCredits = document.getElementById('profileCredits');
-                    if (profileCredits && userData) {
-                        const credits = userData.credits || 0;
-                        profileCredits.textContent = `CREDITS: ${credits}`;
-                        
-                        // Also update header credits display
-                        const headerCredits = document.getElementById('headerCredits');
-                        if (headerCredits) {
-                            headerCredits.textContent = `${credits}`;
-                        }
-                    }
-                }).catch(error => {
-                    console.error('Error fetching user credits in UI update:', error);
-                });
-            }
-        }
-
-        function updateUIForLoggedOutUser() {
-            authBtn.textContent = 'Log In';
-            profileBtn.style.display = 'none';
-            
-            // Reset profile data
-            const profileSubscription = document.getElementById('profileSubscription');
-            if (profileSubscription) {
-                profileSubscription.textContent = 'MEMBER FOR 0 DAYS';
-            }
-            
-            // Reset credits display
-            const profileCredits = document.getElementById('profileCredits');
-            if (profileCredits) {
-                profileCredits.textContent = 'CREDITS: 0';
-            }
-            
-            // Reset header credits display
-            const headerCredits = document.getElementById('headerCredits');
-            if (headerCredits) {
-                headerCredits.textContent = '0';
-            }
-            
-            // Update face quota display and generate buttons with 0 faces used
-            updateFaceQuotaDisplay(3, 0);
-            generateFaceButtons(3);
-        }
-
-        // Auth Modal Controls
-        authBtn.onclick = async () => {
-            if (currentUser) {
-                try {
-                    const { error } = await auth.signOut();
-                    if (error) {
-                        console.error('Error signing out:', error);
-                        alert('Error signing out: ' + error.message);
-                    } else {
-                        console.log('User signed out successfully');
-                        // Redirect to homepage after successful logout
-                        window.location.href = 'index.html';
-                        // No need for manual UI updates since we're redirecting
-                    }
-                } catch (err) {
-                    console.error('Exception during sign out:', err);
-                    alert('Error signing out: ' + err.message);
-                }
-            } else {
-                authModal.style.display = 'block';
-            }
-        };
-
-        closeBtn.onclick = () => {
-            authModal.style.display = 'none';
-        };
-
-        window.onclick = (event) => {
-            if (event.target == authModal) {
-                authModal.style.display = 'none';
-            }
-        };
-
-        // Toggle between login and signup forms
-        window.toggleAuthForm = () => {
-            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
-            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
-        };
-
-        // Signup handler
-        window.signup = async () => {
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const username = document.getElementById('signupUsername').value;
-
-            try {
-                const { data, error } = await auth.signUp(email, password, username);
-                if (error) {
-                    console.error('Detailed signup error:', error);
-                    alert('Error signing up: ' + (error.message || JSON.stringify(error)));
-                } else {
-                    alert('Please check your email for the confirmation link!');
-                    authModal.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Exception during signup:', error);
-                alert('Error creating account: ' + (error.message || JSON.stringify(error)));
-            }
-        };
-
-        // Login handler
-        window.login = async () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const { data, error } = await auth.signIn(email, password);
-                if (error) {
-                    console.error('Login error:', error);
-                    alert('Error logging in: ' + error.message);
-                } else {
-                    console.log('Login successful');
-                    authModal.style.display = 'none';
-                    // The auth state listener will update the UI
-                }
-            } catch (error) {
-                console.error('Exception during login:', error);
-                alert('Error logging in: ' + error.message);
-            }
-        };
-
-        // Profile button click handler
-        profileBtn.onclick = () => {
-            // Already on profile page, so no navigation needed
-        };
-    </script> -->
+   
     <script type="module">
         // Script for profile.html to work with the header component
-        import { supabase } from './src/supabase.js';
-        import { userService } from './src/userService.js';
-        document.addEventListener('DOMContentLoaded', async function() {
+        document.addEventListener('DOMContentLoaded', function() {
             // Profile elements
             const profileUsername = document.getElementById('profileUsername');
             const profileEmail = document.getElementById('profileEmail');
             const profileSubscription = document.getElementById('profileSubscription');
             const profileCredits = document.getElementById('profileCredits');
             
-            // Wait a short time for the header component to initialize
-            setTimeout(async () => {
-                await fetchUserProfileData();
-            }, 500);
-            
-            // Listen for auth state changes from the header component
-            window.addEventListener('auth-state-changed', async (event) => {
-                await fetchUserProfileData();
-            });
-            
-            // Function to fetch user profile data
-            async function fetchUserProfileData() {
-                // Get the current user from the header component
-                const getCurrentUser = window.getCurrentUser;
-                if (!getCurrentUser) {
-                    console.log('Header component not fully loaded yet. Waiting...');
-                    return;
+            // Check if header component is loaded
+            const checkHeaderLoaded = () => {
+                if (typeof window.getCurrentUser === 'function') {
+                    initProfilePage();
+                } else {
+                    // Wait for header component to fully load
+                    setTimeout(checkHeaderLoaded, 100);
                 }
+            };
+            
+            // Initialize profile page
+            const initProfilePage = () => {
+                // Get current user from header component
+                const currentUser = window.getCurrentUser();
                 
-                const currentUser = getCurrentUser();
-                if (!currentUser) {
-                    console.log('No user logged in');
-                    updateUIForLoggedOutUser();
-                    return;
-                }
-                
-                try {
-                    // Fetch user profile data
-                    const { data, error } = await supabase
-                        .from('users')
-                        .select('*')
-                        .eq('id', currentUser.id)
-                        .single();
+                if (currentUser) {
+                    updateProfileDisplay(currentUser);
                     
-                    if (error) {
-                        console.error('Error fetching profile data:', error);
+                    // Setup auth state change listener
+                    setupAuthChangeListener();
+                } else {
+                    // No user is logged in, redirect to home page
+                    window.location.href = 'index.html';
+                }
+            };
+            
+            // Setup listener for auth state changes from header component
+            const setupAuthChangeListener = () => {
+                // Use MutationObserver to detect when the auth button text changes
+                const authBtn = document.getElementById('authBtn');
+                if (authBtn) {
+                    const observer = new MutationObserver((mutations) => {
+                        mutations.forEach((mutation) => {
+                            if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                                const btnText = authBtn.textContent.trim();
+                                if (btnText === 'Log In') {
+                                    // User has been logged out, redirect to home
+                                    window.location.href = 'index.html';
+                                } else if (btnText === 'Log Out') {
+                                    // User logged in, update profile
+                                    updateProfileDisplay(window.getCurrentUser());
+                                }
+                            }
+                        });
+                    });
+                    
+                    observer.observe(authBtn, { 
+                        characterData: true, 
+                        childList: true, 
+                        subtree: true 
+                    });
+                }
+            };
+
+            const unlockFacesButton = document.getElementById('unlockFacesButton');
+            if (unlockFacesButton) {
+                unlockFacesButton.addEventListener('click', async () => {
+                    const currentUser = window.getCurrentUser();
+                    if (!currentUser) {
+                        console.error('No user logged in');
                         return;
                     }
                     
-                    if (data) {
-                        // Update username
-                        if (profileUsername) {
-                            // Try to get username from metadata or use email as fallback
-                            const userMeta = currentUser.user_metadata;
-                            profileUsername.textContent = 
-                                (userMeta && userMeta.username) ? 
-                                userMeta.username : 
-                                currentUser.email.split('@')[0];
-                        }
-                        
-                        // Update email
-                        if (profileEmail) {
-                            profileEmail.textContent = currentUser.email || 'No email available';
-                        }
-                        
-                        // Calculate membership duration in days
-                        const createdAt = data.created_at || currentUser.created_at;
-                        let membershipDays = 0;
-                        
-                        if (createdAt) {
-                            const signupDate = new Date(createdAt);
-                            const today = new Date();
-                            const timeDiff = today.getTime() - signupDate.getTime();
-                            membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
-                        }
-                        
-                        // Update membership duration display
-                        if (profileSubscription) {
-                            profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
-                        }
-                        
-                        // Fetch user credits
+                    try {
+                        // Use the userService from header.html
                         try {
-                            const userData = await userService.getUserData(currentUser.id, true);
-                            // Update credits display
-                            if (profileCredits && userData) {
-                                const credits = userData.credits || 0;
-                                profileCredits.textContent = `CREDITS: ${credits}`;
+                            // Get full user data using the userService exposed from header.html
+                            const userData = await window.userService.getUserData(currentUser.id, true);
+                            console.log('Complete user stats from users table:', userData);
+                            
+                            // Log specific fields if available
+                            if (userData) {
+                                console.log('User ID:', userData.id);
+                                console.log('Credits:', userData.credits);
+                                console.log('Created at:', userData.created_at);
+                                console.log('All available fields in users table:', Object.keys(userData));
                             }
-                        } catch (creditsError) {
-                            console.error('Error fetching user credits:', creditsError);
+                            
+                            // You can also add a new helper function to header.html if needed
+                            // Example of calling a hypothetical function exposed from header.html:
+                            if (typeof window.getUserTableData === 'function') {
+                                const fullUserData = await window.getUserTableData(currentUser.id);
+                                console.log('Full user table data from helper function:', fullUserData);
+                            }
+                        } catch (error) {
+                            console.error('Error fetching users table data:', error);
                         }
                         
-                        // Get face count from the database
-                        const faceCount = data.face_count || 0;
+                        // Log additional user metadata from auth
+                        console.log('User auth metadata:', currentUser.user_metadata);
+                        console.log('User created at:', currentUser.created_at);
+                        console.log('User email:', currentUser.email);
                         
-                        // Determine how many face slots to show based on paid status
-                        const displaySlots = data.is_paid ? 10 : 3;
-                        
-                        // Update face quota display to show available slots
-                        updateFaceQuotaDisplay(displaySlots, faceCount);
-                        
-                        // Generate face buttons
-                        generateFaceButtons(displaySlots);
-                        
-                        // Add a small delay before loading face images
-                        setTimeout(() => {
-                            console.log('Loading existing face images with delay...');
-                            loadExistingFaceImages();
-                        }, 100);
+                    } catch (error) {
+                        console.error('Error fetching user stats:', error);
                     }
-                } catch (error) {
-                    console.error('Exception fetching profile data:', error);
-                }
+                });
             }
             
-            // Function to update UI for logged out user
-            function updateUIForLoggedOutUser() {
-                // Reset profile data
-                if (profileUsername) profileUsername.textContent = 'Guest User';
-                if (profileEmail) profileEmail.textContent = 'Not logged in';
-                if (profileSubscription) profileSubscription.textContent = 'MEMBER FOR 0 DAYS';
-                if (profileCredits) profileCredits.textContent = 'CREDITS: 0';
+            // Update profile display with user data
+            const updateProfileDisplay = (user) => {
+                if (!user) return;
                 
-                // Update face quota display and generate buttons with 0 faces used
-                updateFaceQuotaDisplay(3, 0);
-                generateFaceButtons(3);
-            }
-            
-            // Helper function to update face quota display
-            function updateFaceQuotaDisplay(totalSlots, faceCount = 0) {
-                const faceQuotaCount = document.getElementById('faceQuotaCount');
-                if (faceQuotaCount) {
-                    faceQuotaCount.textContent = totalSlots;
+                // Update username (from user metadata)
+                if (profileUsername) {
+                    const userMeta = user.user_metadata || {};
+                    profileUsername.textContent = userMeta.username || user.email?.split('@')[0] || 'User';
                 }
                 
-                // Also update the title to show both total slots and used count
-                const faceQuotaTitle = document.querySelector('.face-quota-title');
-                if (faceQuotaTitle) {
-                    // Create a more informative title that shows usage without tier information
-                    let titleText = `Your Face Slots (<span id="faceQuotaCount">${totalSlots}</span> available, ${faceCount} used)`;
+                // Update email
+                if (profileEmail) {
+                    profileEmail.textContent = user.email || 'No email available';
+                }
+                
+                // Calculate membership duration in days
+                if (profileSubscription && user.created_at) {
+                    const signupDate = new Date(user.created_at);
+                    const today = new Date();
+                    const timeDiff = today.getTime() - signupDate.getTime();
+                    const membershipDays = Math.floor(timeDiff / (1000 * 3600 * 24)) + 1;
                     
-                    faceQuotaTitle.innerHTML = titleText;
+                    profileSubscription.textContent = `MEMBER FOR ${membershipDays} DAYS`;
                 }
-            }
-            
-            // Function to generate face buttons based on face_quota
-            function generateFaceButtons(faceSlots) {
-                // Keep the existing face button generation code...
-                // This should be the same as your original implementation
-            }
-            
-            // Function to upload face image to Supabase storage
-            async function uploadFaceImage(file, faceNumber, buttonElement) {
-                // Keep the existing upload face image code...
-                // This should be the same as your original implementation
-            }
-            
-            // Function to delete a face image
-            async function deleteFaceImage(faceNumber) {
-                // Keep the existing delete face image code...
-                // This should be the same as your original implementation
-            }
-            
-            // Function to update the face_count in the users table
-            async function updateFaceCount() {
-                // Keep the existing update face count code...
-                // This should be the same as your original implementation
-            }
-            
-            // Function to load existing face images from Supabase
-            async function loadExistingFaceImages() {
-                // Get the current user from the header component
-                const getCurrentUser = window.getCurrentUser;
-                if (!getCurrentUser) return;
                 
-                const currentUser = getCurrentUser();
-                if (!currentUser) return;
-                
-                // Keep the existing load face images code...
-                // This should be the same as your original implementation
-            }
+                // Get credits from header display with observer
+                if (profileCredits) {
+                    const headerCredits = document.getElementById('headerCredits');
+                    if (headerCredits) {
+                        // Set initial value (might be "?" if not loaded yet)
+                        const initialCredits = headerCredits.textContent;
+                        profileCredits.textContent = `CREDITS: ${initialCredits !== '?' ? initialCredits : '...'}`;
+                        
+                        // Create observer to watch for changes to the header credits element
+                        const observer = new MutationObserver(() => {
+                            // This function runs whenever the headerCredits element changes
+                            const updatedCredits = headerCredits.textContent;
+                            profileCredits.textContent = `CREDITS: ${updatedCredits !== '?' ? updatedCredits : '...'}`;
+                        });
+                        
+                        // Start observing changes to the element's content
+                        observer.observe(headerCredits, { 
+                            characterData: true, 
+                            childList: true, 
+                            subtree: true 
+                        });
+                    }
+                }
+            };
+            
+            // Start checking if header is loaded
+            checkHeaderLoaded();
         });
     </script>
     <script src="/components.js"></script>

@@ -14,51 +14,23 @@
 </head>
 <body>
     <div class="container">
-        <!-- <header class="header">
-            <a href="#" class="logo">
-                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
-            </a>
-            <div class="buttons" id="headerButtons">
-                <button class="btn btn-secondary" id="profileBtn" style="display: none;">Profile</button>
-                <button class="btn btn-light" id="authBtn">Log In</button>
-            </div>
-        </header> -->
         <div id="header-container"></div>
-
-        <!-- Auth Modal -->
-        <!-- <div id="authModal" class="modal" style="display: none;">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div id="loginForm">
-                    <h2>Login</h2>
-                    <input type="email" id="loginEmail" placeholder="Email" required>
-                    <input type="password" id="loginPassword" placeholder="Password" required>
-                    <button class="btn btn-primary" onclick="login()">Login</button>
-                    <p>Don't have an account? <a href="#" onclick="toggleAuthForm()">Sign Up</a></p>
-                </div>
-                <div id="signupForm" style="display: none;">
-                    <h2>Sign Up</h2>
-                    <input type="text" id="signupUsername" placeholder="Username" required>
-                    <input type="email" id="signupEmail" placeholder="Email" required>
-                    <input type="password" id="signupPassword" placeholder="Password" required>
-                    <button class="btn btn-primary" onclick="signup()">Sign Up</button>
-                    <p>Already have an account? <a href="#" onclick="toggleAuthForm()">Login</a></p>
-                </div>
-            </div>
-        </div> -->
 
         <!-- Meme Equation Container -->
         <div class="meme-equation">
             <div class="meme-image">
-                <img src="/src/assets/images/face.png" alt="Face 1">
+                <div class="meme-text-overlay">FACES</div>
+                <img src="/src/assets/images/faces.png" alt="Face 1">
             </div>
             <div class="meme-operator">+</div>
             <div class="meme-image">
+                <div class="meme-text-overlay" id="memeVideo">VIDEO</div>
                 <img src="/src/assets/images/gif_blank.gif" alt="Face 2">
             </div>
             <div class="meme-operator">=</div>
             <div class="meme-image">
-                <img src="/src/assets/images/gif_face.gif" alt="Result">
+                <div class="meme-text-overlay" id="memeResult">SILLY MEMES!</div>
+                <img src="/src/assets/images/gif_faces.gif" alt="Result">
             </div>
         </div>
 
@@ -90,7 +62,7 @@
                 <!-- 100 Credits -->
                 <div class="pricing-card" id="tier1">
                     <div class="tier-image">
-                        <img src="/src/assets/images/GERGFACE.png" alt="100 Credits">
+                        <img src="/src/assets/images/pack1.png" alt="100 Credits">
                     </div>
                     <div class="tier-info">
                         <h3>100</h3>
@@ -106,7 +78,7 @@
                 <div class="pricing-card" id="tier2">
                     <div class="bonus-tag">10% EXTRA!</div>
                     <div class="tier-image">
-                        <img src="/src/assets/images/GERGFACE.png" alt="220 Credits">
+                        <img src="/src/assets/images/pack2.png" alt="220 Credits">
                     </div>
                     <div class="tier-info">
                         <h3>220</h3>
@@ -122,7 +94,7 @@
                 <div class="pricing-card" id="tier3">
                     <div class="bonus-tag">22% EXTRA!</div>
                     <div class="tier-image">
-                        <img src="/src/assets/images/GERGFACE.png" alt="430 Credits">
+                        <img src="/src/assets/images/pack3.png" alt="430 Credits">
                     </div>
                     <div class="tier-info">
                         <h3>430</h3>
@@ -138,7 +110,7 @@
                 <div class="pricing-card" id="tier4">
                     <div class="bonus-tag">35% EXTRA!</div>
                     <div class="tier-image">
-                        <img src="/src/assets/images/GERGFACE.png" alt="810 Credits">
+                        <img src="/src/assets/images/pack4.png" alt="810 Credits">
                     </div>
                     <div class="tier-info">
                         <h3>810</h3>
@@ -153,22 +125,7 @@
         </div>
 
         <div id="footer-container"></div>
-        <!-- <div class="footer">
-            <div class="footer-links">
-                <a href="#">Pricing</a>
-                <a href="#">FAQ</a>
-            </div>
-            <div class="logo">
-                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
-            </div>
-        </div> -->
     </div>
-
-    <!-- Update script loading to use modules -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
-    <script type="module" src="/src/supabase.js"></script>
-    <script type="module" src="/src/app.js"></script>
-    <script src="/components.js"></script> -->
 
     <!-- Load core dependencies first -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -179,270 +136,5 @@
 
     <!-- Then load your components -->
     <script src="/components.js"></script>
-    <!-- <script type="module">
-        import { supabase } from './src/supabase.js';
-        import { auth } from './src/auth.js';
-        import { userService } from './src/userService.js';
-
-        // DOM Elements
-        const authModal = document.getElementById('authModal');
-        const closeBtn = document.querySelector('.close');
-        const authBtn = document.getElementById('authBtn');
-        const profileBtn = document.getElementById('profileBtn');
-        const loginForm = document.getElementById('loginForm');
-        const signupForm = document.getElementById('signupForm');
-
-        // Add event listeners for pricing cards
-        document.addEventListener('DOMContentLoaded', function() {
-            const pricingCards = document.querySelectorAll('.pricing-card');
-            
-            pricingCards.forEach(card => {
-                card.addEventListener('click', async function() {
-                    // Check if user is logged in
-                    if (!currentUser) {
-                        alert('Please log in to purchase credits');
-                        authModal.style.display = 'block';
-                        return;
-                    }
-
-                    const userId = currentUser.id;
-                    const tierId = this.id;
-                    let creditsToAdd = 0;
-                    
-                    // Determine credits amount based on the tier
-                    switch(tierId) {
-                        case 'tier1':
-                            creditsToAdd = 100;
-                            break;
-                        case 'tier2':
-                            creditsToAdd = 220;
-                            break;
-                        case 'tier3':
-                            creditsToAdd = 430;
-                            break;
-                        case 'tier4':
-                            creditsToAdd = 810;
-                            break;
-                        default:
-                            console.error('Unknown tier ID:', tierId);
-                            return;
-                    }
-                    
-                    // In a real app, you would process payment here before adding credits
-                    // For now, just add the credits directly
-                    try {
-                        const result = await userService.addCredits(userId, creditsToAdd);
-                        if (result) {
-                            alert(`Successfully added ${creditsToAdd} credits to your account!`);
-                        } else {
-                            alert('Failed to add credits. Please try again.');
-                        }
-                    } catch (error) {
-                        console.error('Error adding credits:', error);
-                        alert('Error adding credits: ' + error.message);
-                    }
-                });
-            });
-        });
-
-        // Auth state management
-        let currentUser = null;
-
-        // Handle email confirmation when the page loads
-        async function handleEmailConfirmation() {
-            // Check if we have a confirmation hash in the URL
-            const hash = window.location.hash;
-            if (hash && (hash.includes('access_token') || hash.includes('confirmation_token'))) {
-                console.log('Detected confirmation URL, processing...');
-                try {
-                    // The supabase client will automatically handle the token exchange
-                    const { data, error } = await supabase.auth.getSession();
-                    
-                    if (error) {
-                        console.error('Error confirming email:', error);
-                        alert('There was an error confirming your email. Please try again or contact support.');
-                    } else if (data.session) {
-                        console.log('Email confirmed successfully!');
-                        
-                        try {
-                            // Try to create the user profile
-                            const { initializeUserData } = await import('./src/auth.js');
-                            
-                            // The user session contains all the needed information
-                            await initializeUserData(
-                                data.session.user.id,
-                                data.session.user.email,
-                                data.session.user.user_metadata?.username
-                            );
-                            
-                            // Redirect to relevant page or update UI
-                            alert('Your email has been confirmed successfully! You are now logged in.');
-                            currentUser = data.session.user;
-                            updateUIForLoggedInUser();
-                            
-                            // Clean URL
-                            window.history.replaceState(null, '', window.location.pathname);
-                        } catch (error) {
-                            console.error('Error setting up user profile:', error);
-                            
-                            // Fallback: Show a message to the user but still let them in
-                            alert('Your email has been confirmed and you can use the application, but there was an issue setting up your profile completely. Some features may be limited.');
-                            currentUser = data.session.user;
-                            updateUIForLoggedInUser();
-                        }
-                    }
-                } catch (err) {
-                    console.error('Exception during confirmation:', err);
-                }
-            }
-        }
-
-        // Check initial auth state
-        async function checkInitialAuthState() {
-            const { session, error } = await auth.getSession();
-            if (session) {
-                currentUser = session.user;
-                updateUIForLoggedInUser();
-                console.log('User is logged in:', currentUser.email);
-            } else {
-                updateUIForLoggedOutUser();
-                console.log('No user session found');
-            }
-        }
-
-        // Call this before checking initial auth state
-        handleEmailConfirmation();
-        // Check initial auth state 
-        checkInitialAuthState();
-
-        // Listen for auth changes
-        const authListener = supabase.auth.onAuthStateChange((event, session) => {
-            console.log('Auth state changed:', event);
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                currentUser = session.user;
-                updateUIForLoggedInUser();
-                console.log('User signed in:', currentUser.email);
-            } else if (event === 'SIGNED_OUT') {
-                currentUser = null;
-                updateUIForLoggedOutUser();
-                console.log('User signed out');
-            }
-        });
-
-        // UI Updates
-        function updateUIForLoggedInUser() {
-            authBtn.textContent = 'Log Out';
-            profileBtn.style.display = 'block';
-        }
-
-        function updateUIForLoggedOutUser() {
-            authBtn.textContent = 'Log In';
-            profileBtn.style.display = 'none';
-        }
-
-        // Auth Modal Controls
-        authBtn.onclick = async () => {
-            if (currentUser) {
-                try {
-                    const { error } = await auth.signOut();
-                    if (error) {
-                        console.error('Error signing out:', error);
-                        alert('Error signing out: ' + error.message);
-                    } else {
-                        console.log('User signed out successfully');
-                        // No need to manually update UI here as the auth listener will handle it
-                    }
-                } catch (err) {
-                    console.error('Exception during sign out:', err);
-                    alert('Error signing out: ' + err.message);
-                }
-            } else {
-                authModal.style.display = 'block';
-            }
-        };
-
-        closeBtn.onclick = () => {
-            authModal.style.display = 'none';
-        };
-
-        window.onclick = (event) => {
-            if (event.target == authModal) {
-                authModal.style.display = 'none';
-            }
-        };
-
-        // Toggle between login and signup forms
-        window.toggleAuthForm = () => {
-            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
-            signupForm.style.display = signupForm.style.display === 'none' ? 'block' : 'none';
-        };
-
-        // Signup handler
-        window.signup = async () => {
-            const email = document.getElementById('signupEmail').value;
-            const password = document.getElementById('signupPassword').value;
-            const username = document.getElementById('signupUsername').value;
-
-            try {
-                const { data, error } = await auth.signUp(email, password, username);
-                if (error) {
-                    console.error('Detailed signup error:', error);
-                    alert('Error signing up: ' + (error.message || JSON.stringify(error)));
-                } else {
-                    alert('Please check your email for the confirmation link!');
-                    authModal.style.display = 'none';
-                }
-            } catch (error) {
-                console.error('Exception during signup:', error);
-                alert('Error creating account: ' + (error.message || JSON.stringify(error)));
-            }
-        };
-
-        // Login handler
-        window.login = async () => {
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const { data, error } = await auth.signIn(email, password);
-                if (error) {
-                    console.error('Login error:', error);
-                    alert('Error logging in: ' + error.message);
-                } else {
-                    console.log('Login successful');
-                    authModal.style.display = 'none';
-                    // The auth state listener will update the UI
-                }
-            } catch (error) {
-                console.error('Exception during login:', error);
-                alert('Error logging in: ' + error.message);
-            }
-        };
-
-        // Debug authentication state
-        window.checkAuthState = async () => {
-            const { session } = await auth.getSession();
-            console.log('Current session:', session);
-            if (session) {
-                console.log('User ID:', session.user.id);
-                console.log('User email:', session.user.email);
-                console.log('Email confirmed:', session.user.email_confirmed_at);
-                console.log('User metadata:', session.user.user_metadata);
-            } else {
-                console.log('No active session found.');
-            }
-            return session;
-        };
-
-        // Call this once at startup
-        checkAuthState().then(session => {
-            console.log('Initial auth check complete.');
-        });
-
-        // Add profile button click handler
-        profileBtn.onclick = () => {
-            window.location.href = 'profile.html';
-        };
-    </script> -->
 </body>
 </html>

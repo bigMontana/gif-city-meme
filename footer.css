@@ -1,0 +1,25 @@
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background-color: #36B2B7;
+    margin-top: 40px;
+    font-family: "VT323", serif; 
+}
+
+.footer-links {
+    display: flex;
+    gap: 20px;
+}
+
+.footer a {
+    color: white;
+    text-decoration: none;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.footer a:hover {
+    opacity: 0.8;
+}

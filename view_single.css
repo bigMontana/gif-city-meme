@@ -218,6 +218,8 @@ body {
     margin: 0 auto;
     border: 8px solid #FF69B4;  /* Hot pink border */
     border-radius: 4px;
+    margin-bottom: 40px;
+    margin-top: 40px;
 }
 
 #memeVideo {
@@ -419,7 +421,8 @@ button:hover {
 }
 
 .watermark-toggle-btn.active {
-    background-color: #28a745;
+    background-color: #44ff44;
+    color: rgb(51, 51, 51);
 }
 
 .toggle-button {
@@ -437,6 +440,7 @@ button:hover {
     margin: 20px auto;  /* Add margin and auto for centering */
     display: block;  /* Make it block to allow margin auto to work */
     font-size: 20px; /* Increased from 16px by 25% */
+    margin-top: 50px;
 }
 
 .ffmpeg-button:hover {
@@ -452,6 +456,23 @@ button:hover {
     padding: 20px;
     border-radius: 8px;
     width: 100%;  /* Ensure container takes full width */
+    
+}
+
+.upload-title {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 20px auto;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.upload-title h2 {
+    font-family: "Work Sans", sans-serif;
+    font-size: 30px;
+    color: white;
 }
 
 .face-container {
@@ -675,8 +696,8 @@ button:disabled {
 
 /* Add styles for selected resolution buttons */
 .resolution-button.selected {
-    background-color: #4CAF50;
-    color: white;
+    background-color: #44ff44;
+    color: rgb(51, 51, 51);
     border: 2px solid #2E7D32;
 }
 
@@ -690,7 +711,7 @@ button:disabled {
 
 .tally p {
     margin: 5px 0;
-    font-size: 14px;
+    font-size: 20px;
     color: #e0e0e0;
 }
 
@@ -699,9 +720,10 @@ button:disabled {
 }
 
 .credit-cost {
-    color: #4CAF50;
+    color: #44ff44;
     font-weight: bold;
     margin-left: 5px;
+    font-family: "Work Sans", sans-serif;
 }
 
 #tallyTotalCredits {
@@ -750,3 +772,96 @@ button:disabled {
     vertical-align: middle;
     margin-left: 10px;
 }
+
+.tools-container {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 20px auto;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.tools-container h2 {
+    font-family: "Work Sans", sans-serif;
+    font-size: 30px;
+    color: white;
+}
+
+.render-settings {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 10px;
+    margin: 20px auto;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.render-settings h2 {
+    font-family: "Work Sans", sans-serif;
+    font-size: 30px;
+    color: white;
+}   
+
+.render-button-final {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 30px;
+    margin: 20px auto;
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+.render-button-final h2 {
+    font-family: "Work Sans", sans-serif;
+    font-size: 30px;
+    color: white;
+}
+
+.render-button-final button {
+    font-size: 24px;
+    /* padding: 20px 40px; */
+}
+
+/* Helper pop-up element */
+.helper {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    background-color: #36B2B7;
+    color: white;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-weight: bold;
+    transform: rotate(-15deg);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    z-index: 5;
+    font-size: 20px;
+    border: 2px solid white;
+    font-family: "Work Sans", sans-serif;
+    animation: popIn 0.3s ease-out;
+}
+
+@keyframes popIn {
+    0% {
+        transform: scale(0) rotate(-15deg);
+        opacity: 0;
+    }
+    80% {
+        transform: scale(1.2) rotate(-15deg);
+    }
+    100% {
+        transform: scale(1) rotate(-15deg);
+        opacity: 1;
+    }
+}
+
+
+

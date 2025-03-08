@@ -53,37 +53,46 @@
         <div id="header-container"></div>
 
         <!-- Add upload container here, before video container -->
-        <div class="upload-container"></div>
-
-        <!-- Move status div here -->
-        <div id="status" class="status"></div>
-        <div id="status2" class="status"></div>
-
-        <!-- Move scrubber container before video container -->
-        <div class="scrubber-container">
-            <div id="frameMarkers" class="frame-markers"></div>
-            <input type="range" 
-                   id="videoScrubber" 
-                   min="0" 
-                   max="0" 
-                   value="0" 
-                   step="1" 
-                   style="width: 100%; margin: 20px 0;">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <button id="chooseRangeBtn" class="choose-range-btn">Choose Range</button>
-                <button id="removeWatermarkBtn" class="watermark-toggle-btn">Remove Watermark</button>
+         <div class="upload-title">
+            <div class="helper">#1</div>
+            <h2>UPLOAD FACES</h2>
+            <div class="upload-container">
+                
             </div>
         </div>
-        
-        <!-- Range slider container -->
-        <div class="range-slider-container">
-            <div class="range-slider" id="rangeSlider">
-                <div class="range-selected"></div>
-                <div class="handle start" id="startHandle"></div>
-                <div class="handle end" id="endHandle"></div>
+
+        <div class="tools-container">
+            <div class="helper">#2</div>
+            <h2>EDIT VIDEO</h2>
+            <div id="status" class="status"></div>
+            <div id="status2" class="status"></div>
+
+            <!-- Move scrubber container before video container -->
+            <div class="scrubber-container">
+                <div id="frameMarkers" class="frame-markers"></div>
+                <input type="range" 
+                    id="videoScrubber" 
+                    min="0" 
+                    max="0" 
+                    value="0" 
+                    step="1" 
+                    style="width: 100%; margin: 20px 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button id="chooseRangeBtn" class="choose-range-btn">Edit Video Length</button>
+                    <button id="removeWatermarkBtn" class="watermark-toggle-btn">Remove Watermark</button>
+                </div>
             </div>
-            <div class="range-values">
-                <span id="startValue">0:00</span> - <span id="endValue">0:00</span>
+            
+            <!-- Range slider container -->
+            <div class="range-slider-container">
+                <div class="range-slider" id="rangeSlider">
+                    <div class="range-selected"></div>
+                    <div class="handle start" id="startHandle"></div>
+                    <div class="handle end" id="endHandle"></div>
+                </div>
+                <div class="range-values">
+                    <span id="startValue">0:00</span> - <span id="endValue">0:00</span>
+                </div>
             </div>
         </div>
 
@@ -93,64 +102,62 @@
 
        
 
-        <!-- Add new resolution buttons in a container -->
-        <div class="resolution-buttons-container">
-            <button id="ffmpegButtonSD" class="ffmpeg-button resolution-button" disabled>
-                Select MP4 480p
-                <span id="ffmpegSpinnerSD" class="loading-spinner" style="display: none;"></span>
-            </button>
-            <button id="ffmpegButtonHD" class="ffmpeg-button resolution-button" disabled>
-                Select MP4 720p
-                <span id="ffmpegSpinnerHD" class="loading-spinner" style="display: none;"></span>
-            </button>
-            <button id="ffmpegButtonFullHD" class="ffmpeg-button resolution-button" disabled>
-                Select MP4 1080p
-                <span id="ffmpegSpinnerFullHD" class="loading-spinner" style="display: none;"></span>
-            </button>
-            
-            <!-- GIF render buttons in their own row -->
-            <div class="gif-buttons-row">
-                <button id="ffmpegButtonGIF" class="ffmpeg-button resolution-button" disabled>
-                    Select GIF Small
-                    <span id="ffmpegSpinnerGIF" class="loading-spinner" style="display: none;"></span>
+        <div class="render-settings">
+            <div class="helper">#3</div>
+            <h2>RENDER SETTINGS</h2>
+            <div class="resolution-buttons-container">
+                <button id="ffmpegButtonSD" class="ffmpeg-button resolution-button" disabled>
+                    Select MP4 480p
+                    <span id="ffmpegSpinnerSD" class="loading-spinner" style="display: none;"></span>
                 </button>
-                <button id="ffmpegButtonGIFMed" class="ffmpeg-button resolution-button" disabled>
-                    Select GIF Med
-                    <span id="ffmpegSpinnerGIFMed" class="loading-spinner" style="display: none;"></span>
+                <button id="ffmpegButtonHD" class="ffmpeg-button resolution-button" disabled>
+                    Select MP4 720p
+                    <span id="ffmpegSpinnerHD" class="loading-spinner" style="display: none;"></span>
                 </button>
-                <button id="ffmpegButtonGIFLarge" class="ffmpeg-button resolution-button" disabled>
-                    Select GIF Large
-                    <span id="ffmpegSpinnerGIFLarge" class="loading-spinner" style="display: none;"></span>
+                <button id="ffmpegButtonFullHD" class="ffmpeg-button resolution-button" disabled>
+                    Select MP4 1080p
+                    <span id="ffmpegSpinnerFullHD" class="loading-spinner" style="display: none;"></span>
                 </button>
+                
+                <!-- GIF render buttons in their own row -->
+                <div class="gif-buttons-row">
+                    <button id="ffmpegButtonGIF" class="ffmpeg-button resolution-button" disabled>
+                        Select GIF Small
+                        <span id="ffmpegSpinnerGIF" class="loading-spinner" style="display: none;"></span>
+                    </button>
+                    <button id="ffmpegButtonGIFMed" class="ffmpeg-button resolution-button" disabled>
+                        Select GIF Med
+                        <span id="ffmpegSpinnerGIFMed" class="loading-spinner" style="display: none;"></span>
+                    </button>
+                    <button id="ffmpegButtonGIFLarge" class="ffmpeg-button resolution-button" disabled>
+                        Select GIF Large
+                        <span id="ffmpegSpinnerGIFLarge" class="loading-spinner" style="display: none;"></span>
+                    </button>
+                </div>
             </div>
         </div>
 
-         <!-- Replace the single ffmpeg button with a button container -->
-         <button id="ffmpegButton" class="ffmpeg-button" disabled>
-            Render Video for x Credits
-            <span id="ffmpegSpinner" class="loading-spinner" style="display: none;"></span>
-        </button>
-        
-        <div class="tally">
-            <div id="tallyContent">
-                <p><strong>Current Settings:</strong></p>
-                <p id="tallyTimeLength">Time Length: 0 seconds <span class="credit-cost">(1 credit)</span></p>
-                <p id="tallyWatermark">Watermark: Visible <span class="credit-cost">(0 credits)</span></p>
-                <p id="tallyResolution">Format: MP4 1080p <span class="credit-cost">(3 credits)</span></p>
-                <p id="tallyTotalCredits"><strong>Total: 4 credits</strong></p>
+        <div class="render-button-final">
+            <div class="helper">#4</div>
+            <h2>RENDER VIDEO</h2>
+            <div class="tally">
+                <div id="tallyContent">
+                    <p><strong>Current Settings:</strong></p>
+                    <p id="tallyTimeLength">Time Length: 0 seconds <span class="credit-cost">(1 credit)</span></p>
+                    <p id="tallyWatermark">Watermark: Visible <span class="credit-cost">(0 credits)</span></p>
+                    <p id="tallyResolution">Format: MP4 1080p <span class="credit-cost">(3 credits)</span></p>
+                    <p id="tallyTotalCredits"><strong>Total: 4 credits</strong></p>
+                </div>
             </div>
+            <button id="ffmpegButton" class="ffmpeg-button" disabled>
+                Render Video for x Credits
+                <span id="ffmpegSpinner" class="loading-spinner" style="display: none;"></span>
+            </button>
         </div>
         
-        <div class="footer">
-            <div class="footer-links">
-                <a href="#">About</a>
-                <a href="#">Terms</a>
-                <a href="#">Privacy</a>
-            </div>
-            <div class="logo">
-                <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo" crossorigin="anonymous">
-            </div>
-        </div>
+        
+        
+        <div id="footer-container"></div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
@@ -1621,7 +1628,7 @@
                         scrubber.style.setProperty('--value-percent', `${percent}%`);
                         
                         // Update the scrubber's appearance
-                        chooseRangeBtn.textContent = "Choose Range";
+                        chooseRangeBtn.textContent = "Edit Video Length";
                         chooseRangeBtn.style.backgroundColor = "#DA3A98";
                         
                         // Update tally information when range is deactivated
@@ -1642,7 +1649,7 @@
                         
                         // Update the scrubber's appearance
                         chooseRangeBtn.textContent = "Reset Range";
-                        chooseRangeBtn.style.backgroundColor = "#28a745";
+                        chooseRangeBtn.style.backgroundColor = "#44ff44";
                         
                         // Update tally information when range is activated
                         updateTallyInformation();

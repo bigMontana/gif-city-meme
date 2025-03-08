@@ -1,4 +1,6 @@
 <!-- Header Section -->
+<link rel="stylesheet" href="header.css">
+
 <header class="header">
     <a href="index.html" class="logo">
         <img src="/src/assets/images/gifcity_logo.png" alt="GIF CITY Logo">
@@ -292,4 +294,122 @@
 
     // Expose currentUser to global scope for other components
     window.getCurrentUser = () => currentUser;
+
+    window.userService = userService;
+    window.isUserLoggedIn = () => currentUser !== null;
+    window.getCurrentUser = () => currentUser;
+    window.fetchUserSavedFaces = async () => {
+    if (!currentUser) return { data: null, error: new Error('Not logged in') };
+    
+    try {
+        return await supabase
+        .from('user_faces')
+        .select('*')
+        .eq('user_id', currentUser.id);
+    } catch (error) {
+        console.error('Error fetching saved faces:', error);
+        return { data: null, error };
+    }
+    };
+
+    window.getSupabaseStorageUrl = async (path) => {
+    return await supabase.storage
+        .from('user_faces')
+        .getPublicUrl(path);
+    };
+
+    window.checkRenderCredits = async (creditCost) => {
+    if (!currentUser) {
+        return { success: false, message: 'Not logged in' };
+    }
+    
+    try {
+        const userData = await userService.getUserData(currentUser.id, true);
+        const userCredits = userData?.credits || 0;
+        
+        if (userCredits < creditCost) {
+        return { 
+            success: false, 
+            message: 'Not enough credits', 
+            credits: userCredits, 
+            cost: creditCost 
+        };
+        }
+        
+        return { 
+        success: true, 
+        credits: userCredits, 
+        cost: creditCost 
+        };
+    } catch (error) {
+        console.error('Error checking credits:', error);
+        return { success: false, message: error.message };
+    }
+    };
+
+    window.useCredits = async (cost) => {
+    if (!currentUser) {
+        return { success: false, message: 'Not logged in' };
+    }
+    
+    try {
+        const result = await userService.useCredits(currentUser.id, cost);
+        
+        if (result.success) {
+        // Update the header UI after deducting credits
+        await updateCreditsDisplay();
+        }
+        
+        return result;
+    } catch (error) {
+        console.error('Error using credits:', error);
+        return { success: false, message: error.message };
+    }
+    };
+
+    // Add a function to fetch template data
+    window.fetchTemplateById = async (templateId) => {
+    try {
+        const { data, error } = await supabase
+        .from('templates')
+        .select('*')
+        .eq('id', templateId)
+        .single();
+        
+        if (error) throw error;
+        return data;
+    } catch (error) {
+        console.error('Error fetching template:', error);
+        return null;
+    }
+    };
+
+    // Dispatch an event when header is fully initialized
+    document.addEventListener('DOMContentLoaded', () => {
+    const event = new CustomEvent('header-initialized');
+    document.dispatchEvent(event);
+    });
+
+    window.getUserTableData = async (userId) => {
+        if (!userId) {
+            const currentUser = window.getCurrentUser();
+            if (!currentUser) return { error: 'No user logged in' };
+            userId = currentUser.id;
+        }
+        
+        try {
+            // Direct query to the users table for all fields
+            const { data, error } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
+                
+            if (error) throw error;
+            return data;
+        } catch (error) {
+            console.error('Error fetching user table data:', error);
+            return { error: error.message };
+        }
+    };
 </script>
