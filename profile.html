@@ -47,7 +47,10 @@
     <script type="module" src="/src/supabase.js"></script>
    
     <script type="module">
+        import { uploadUserFace } from './src/supabase.js';
+
         // Script for profile.html to work with the header component
+        let faceCount = 0;
         document.addEventListener('DOMContentLoaded', function() {
             // Profile elements
             const profileUsername = document.getElementById('profileUsername');
@@ -66,13 +69,16 @@
             };
             
             // Initialize profile page
-            const initProfilePage = () => {
+            const initProfilePage = async () => {
                 // Get current user from header component
                 const currentUser = window.getCurrentUser();
                 
                 if (currentUser) {
                     updateProfileDisplay(currentUser);
-                    
+                    // Wait for getFaceCount to complete and store the result
+                    const faceCount = await getFaceCount();
+                    // Pass the face count to initSavedFaces
+                    initSavedFaces(faceCount || 0);
                     // Setup auth state change listener
                     setupAuthChangeListener();
                 } else {
@@ -80,6 +86,58 @@
                     window.location.href = 'index.html';
                 }
             };
+
+            // Initialize profile page
+            const initSavedFaces = (count) => {
+                // Create upload buttons for each face slot
+                const faceButtonsContainer = document.getElementById('faceButtonsContainer');
+                if (faceButtonsContainer) {
+                    for (let i = 0; i < count; i++) {
+                        const slotIndex = i;
+                        
+                        // Create a hidden file input for this slot
+                        const fileInput = document.createElement('input');
+                        fileInput.type = 'file';
+                        fileInput.accept = 'image/*';
+                        fileInput.style.display = 'none';
+                        fileInput.id = `face-upload-input-${slotIndex}`;
+                        document.body.appendChild(fileInput);
+                        
+                        // Create the visible button
+                        const faceButton = document.createElement('button');
+                        faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                        
+                        // Handle button click - trigger file input
+                        faceButton.addEventListener('click', () => {
+                            console.log('Face upload button clicked for slot', slotIndex + 1);
+                            fileInput.click(); // Trigger file selection dialog
+                        });
+                        
+                        // Handle file selection - UPDATED to use authenticatedUploadFace
+                        fileInput.addEventListener('change', async (event) => {
+                        const file = event.target.files[0];
+                            if (file) {
+                                const currentUser = window.getCurrentUser();
+                                if (currentUser) {
+                                    uploadUserFace(currentUser.id, file)
+                                        .then((url) => {
+                                            console.log(`Face uploaded successfully for slot ${slotIndex + 1}:`, url);
+                                            // Optionally, update the UI with the uploaded image URL
+                                        })
+                                        .catch((error) => {
+                                            console.error(`Error uploading face for slot ${slotIndex + 1}:`, error);
+                                        });
+                                } else {
+                                    console.error('No user logged in to upload face');
+                                }
+                            }
+                        });
+                        
+                        faceButtonsContainer.appendChild(faceButton);
+                    }
+                }
+            };
+
             
             // Setup listener for auth state changes from header component
             const setupAuthChangeListener = () => {
@@ -127,10 +185,21 @@
                             
                             // Log specific fields if available
                             if (userData) {
-                                console.log('User ID:', userData.id);
-                                console.log('Credits:', userData.credits);
-                                console.log('Created at:', userData.created_at);
-                                console.log('All available fields in users table:', Object.keys(userData));
+                                // console.log('User ID:', userData.id);
+                                // console.log('Credits:', userData.credits);
+                                // console.log('Created at:', userData.created_at);
+                                // console.log('All available fields in users table:', Object.keys(userData));
+                                if(userData.credits >= 250 && userData.is_paid) {
+                                    // Subtract 250 credits from the user's balance
+                                    await window.userService.updateUserCredits(currentUser.id, userData.credits - 250);
+                                    await window.userService.updateUserFaceSlots(currentUser.id, userData.face_count + 10);
+                                    console.log('======250 credits subtracted from user balance & 10 face slots unlocked======');
+                                    // Create alert to confirm the changes for the user
+                                    alert('10 face slots unlocked!!');
+                                } else {
+                                    console.log('======Either not enough credits or not paid member======');
+                                    alert('Cannot unlock face slots with free credits. Once credits are purchased you can unlock more face slots.');
+                                }
                             }
                             
                             // You can also add a new helper function to header.html if needed
@@ -206,6 +275,27 @@
             
             // Start checking if header is loaded
             checkHeaderLoaded();
+
+            // Get face count from user table
+            const getFaceCount = async () => {
+                const currentUser = window.getCurrentUser();
+                if (currentUser) {
+                    try {
+                        const faceCount = await window.userService.getFaceCount(currentUser.id);
+                        console.log('Face count:', faceCount);
+                        
+                        // Update the face quota count in the UI
+                        const faceQuotaCount = document.getElementById('faceQuotaCount');
+                        if (faceQuotaCount) {
+                            faceQuotaCount.textContent = faceCount || 0;
+                        }
+                        return faceCount;
+                    } catch (error) {
+                        console.error('Error getting face count:', error);
+                    }
+                }
+            };
+            
         });
     </script>
     <script src="/components.js"></script>

@@ -3,7 +3,7 @@ const supabaseUrl = import.meta.env.DEV
   ? 'http://127.0.0.1:8787'  // Local development (Cloudflare Worker)
   : import.meta.env.VITE_SUPABASE_URL;
 
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyY3lpZXpsd3V0Zmp2Zmtsa2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExNTQ1MjQsImV4cCI6MjA1NjczMDUyNH0.hlL8QRmt-efTiwcSZ_P3NfnWq8INKU7o0-3gTQt3prA';
 
 // Configure client with persistence and headers
 export const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {
@@ -104,6 +104,37 @@ window.login = async () => {
         alert('Error logging in: ' + error.message);
     }
 };
+
+// Function to upload user face
+export const uploadUserFace = async (userID, file) => {
+    try {
+        // Upload the GERGFACE.png image from the /src/assets/images folder to the 'user_faces' bucket
+        const { data: uploadData, error: uploadError } = await supabase
+            .storage
+            .from('user_faces2')
+            .upload(userID + '/' + file.name, file, {
+                cacheControl: '3600',
+                upsert: false // Set to true if you want to replace existing files
+            });
+
+        if (uploadError) {
+            console.error('Failed to upload GERGFACE.png:', uploadError);
+            throw uploadError;
+        }
+
+        console.log('GERGFACE.png uploaded successfully:', uploadData);
+        
+        // Optional: Return the URL to the uploaded file
+        const fileUrl = supabase.storage.from('user_faces2').getPublicUrl('GERGFACE.png');
+        return fileUrl;
+        
+    } catch (error) {
+        console.error('Error uploading GERGFACE.png:', error);
+        throw error;
+    }
+}
+
+
 
 
 

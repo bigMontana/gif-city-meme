@@ -8,8 +8,84 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
+async function handleSupabaseStorageRequest(request, env) {
+	// Extract the path from the URL
+	const url = new URL(request.url);
+	const path = url.pathname;
+  
+	// Check if this is a storage request
+	if (path.startsWith('/storage/v1/object/')) {
+	  console.log('Handling storage request:', path);
+	  
+	  // Create a new request to forward to Supabase
+	  const supabaseUrl = env.SUPABASE_URL || 'https://srcyiezlwutfjvfklkgi.supabase.co';
+	  const targetUrl = `${supabaseUrl}${path}`;
+	  
+	  // Clone the request and modify as needed
+	  const newRequest = new Request(targetUrl, {
+		method: request.method,
+		headers: new Headers(request.headers),
+		body: request.body,
+		// Make sure to include this for file uploads
+		duplex: 'half'
+	  });
+	  
+	  // Forward any Authorization header from the original request
+	  const authHeader = request.headers.get('Authorization');
+	  if (authHeader) {
+		newRequest.headers.set('Authorization', authHeader);
+	  } else {
+		// If no auth header, add the anon key as a fallback
+		newRequest.headers.set('apikey', env.SUPABASE_ANON_KEY);
+	  }
+	  
+	  // Log request details for debugging
+	  console.log('Forwarding storage request to:', targetUrl);
+	  console.log('Request method:', request.method);
+	  console.log('Content-Type:', request.headers.get('Content-Type'));
+	  console.log('Authorization present:', !!authHeader);
+	  
+	  try {
+		// Forward the request to Supabase
+		const response = await fetch(newRequest);
+		
+		// Log response status for debugging
+		console.log('Supabase storage response status:', response.status);
+		
+		// Clone and return the response
+		const newResponse = new Response(response.body, response);
+		
+		// Add CORS headers if needed
+		newResponse.headers.set('Access-Control-Allow-Origin', '*');
+		
+		return newResponse;
+	  } catch (error) {
+		console.error('Error forwarding storage request:', error);
+		return new Response(JSON.stringify({
+		  error: 'Error forwarding storage request',
+		  message: error.message
+		}), {
+		  status: 500,
+		  headers: {
+			'Content-Type': 'application/json',
+			'Access-Control-Allow-Origin': '*'
+		  }
+		});
+	  }
+	}
+	
+	// If not a storage request, continue with other handlers
+	return null;
+  }
+
 export default {
 	async fetch(request, env, ctx) {
+		// First check if it's a storage request and handle it specially
+		const storageResponse = await handleSupabaseStorageRequest(request, env);
+		if (storageResponse) {
+			return storageResponse;
+		}
+		
 		// Add this at the start of the fetch handler
 		if (request.url.includes('/clear-cache')) {
 			const cache = caches.default;
@@ -23,7 +99,7 @@ export default {
 		const corsHeaders = {
 			'Access-Control-Allow-Origin': 'http://localhost:5173', // Only set one origin
 			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
-			'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, content-profile, prefer, accept, x-supabase-api-version',
+			'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, content-profile, prefer, accept, x-supabase-api-version, x-upsert',
 			'Access-Control-Expose-Headers': 'content-range',
 			'Access-Control-Max-Age': '86400',
 		};

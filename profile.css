@@ -160,38 +160,34 @@ body {
     flex-wrap: wrap;
     gap: 15px;
     justify-content: center;
+    margin: 20px 0;
 }
 
-.face-button {
+/* Face slot upload button styling */
+#faceButtonsContainer button {
     width: 80px;
     height: 80px;
     position: relative;
     transition: transform 0.2s, border-color 0.2s;
     border: 2px solid #36B2B7;
     border-radius: 5px;
-    background-color: #2a2a2a;
+    background-color: rgba(54, 178, 183, 0.2);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 5px;
     display: flex;
     justify-content: center;
     align-items: center;
-    cursor: pointer;
-    overflow: visible;
+    overflow: hidden;
+    text-align: center;
+    padding: 5px;
 }
 
-.face-button:hover {
+#faceButtonsContainer button:hover {
     transform: scale(1.05);
-    border-color: #DA3A98;
-}
-
-.face-button-number {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 18px;
-    color: white;
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 2px 6px;
-    border-radius: 3px;
-    z-index: 2;
+    border-color: #DA3A98 !important;
+    background-color: rgba(218, 58, 152, 0.2);
 }
 
 .face-input {
