@@ -280,32 +280,10 @@
                     // Start the loading animation
                     startLoadingAnimation();
                     
-                    // Fetch the video first with proper CORS settings
-                    const response = await fetch(videoUrl, {
-                        mode: 'cors',
-                        credentials: 'omit' // Change from 'include' to 'omit'
-                    });
-                    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                    // Try direct video loading first since fetch is failing
+                    video.crossOrigin = 'anonymous';
+                    video.src = videoUrl;
                     
-                    // Create a blob from the response
-                    const blob = await response.blob();
-                    const blobUrl = URL.createObjectURL(blob);
-                    
-                    // Set video source to the blob URL
-                    video.src = blobUrl;
-                    
-                    video.onerror = () => {
-                        // Stop the loading animation
-                        stopLoadingAnimation();
-                        
-                        const errorMessage = video.error?.code ? 
-                            `Error loading video (code ${video.error.code}): ${video.error?.message || 'Unknown error'}` : 
-                            'Error loading video';
-                        displayError(errorMessage);
-                        console.error('Video error details:', video.error);
-                        URL.revokeObjectURL(blobUrl);
-                    };
-
                     // Add load event handler
                     video.onloadeddata = () => {
                         // Stop the loading animation
@@ -334,28 +312,74 @@
                             drawFrame();
                         }
                     };
-                } catch (error) {
-                    // Stop the loading animation
-                    stopLoadingAnimation();
-                    
-                    console.error('Error fetching video:', error);
-                    displayError(`Error fetching video: ${error.message}`);
-                    
-                    // Start a new loading animation for the fallback method
-                    startLoadingAnimation();
-                    
-                    // Fallback to direct video source if fetch fails
-                    video.src = videoUrl;
-                    
-                    // Add error handler for fallback method
-                    video.onerror = () => {
-                        stopLoadingAnimation();
-                        const errorMessage = video.error?.code ? 
-                            `Error loading video (code ${video.error.code}): ${video.error?.message || 'Unknown error'}` : 
-                            'Error loading video';
-                        displayError(errorMessage);
-                        console.error('Video error details:', video.error);
+
+                    // Add error handler
+                    video.onerror = async (e) => {
+                        console.error('Video loading error:', video.error);
+                        
+                        // Try alternative loading method with XMLHttpRequest
+                        try {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('GET', videoUrl, true);
+                            xhr.responseType = 'blob';
+                            
+                            xhr.onload = function() {
+                                if (this.status === 200) {
+                                    const videoBlob = new Blob([this.response], { type: 'video/mp4' });
+                                    const videoObjectUrl = URL.createObjectURL(videoBlob);
+                                    
+                                    video.src = videoObjectUrl;
+                                    
+                                    // Clean up the object URL when the video loads
+                                    video.onloadeddata = () => {
+                                        stopLoadingAnimation();
+                                        URL.revokeObjectURL(videoObjectUrl);
+                                        statusDiv.textContent = 'Video loaded successfully (alternative method)';
+                                        statusDiv.style.color = '#44ff44';
+                                        
+                                        if (video.readyState >= 2) {
+                                            canvas.width = video.videoWidth;
+                                            canvas.height = video.videoHeight;
+                                            drawFrame();
+                                        }
+                                    };
+                                } else {
+                                    throw new Error(`HTTP error! status: ${this.status}`);
+                                }
+                            };
+                            
+                            xhr.onerror = function() {
+                                stopLoadingAnimation();
+                                console.error('XHR failed to load video');
+                                statusDiv.textContent = 'Failed to load video. Please try refreshing the page.';
+                                statusDiv.style.color = '#ff4444';
+                            };
+                            
+                            xhr.send();
+                        } catch (xhrError) {
+                            console.error('Alternative loading method failed:', xhrError);
+                            stopLoadingAnimation();
+                            statusDiv.textContent = 'Failed to load video. Please try refreshing the page.';
+                            statusDiv.style.color = '#ff4444';
+                        }
                     };
+
+                    // Add timeupdate handler to ensure video is actually playing
+                    video.addEventListener('timeupdate', function onTimeUpdate() {
+                        if (video.currentTime > 0) {
+                            // Video is actually playing, remove this handler
+                            video.removeEventListener('timeupdate', onTimeUpdate);
+                            stopLoadingAnimation();
+                            statusDiv.textContent = 'Video loaded and playing successfully';
+                            statusDiv.style.color = '#44ff44';
+                        }
+                    });
+
+                } catch (error) {
+                    console.error('Error in loadVideo:', error);
+                    stopLoadingAnimation();
+                    statusDiv.textContent = 'Error loading video. Please try refreshing the page.';
+                    statusDiv.style.color = '#ff4444';
                 }
             };
 
@@ -857,6 +881,10 @@
             // Initialize video playback setup
             setupVideoPlayback();
             
+            // Ensure video is unmuted by default
+            video.muted = false;
+            video.volume = 1.0;
+            
             // Add this function to check credits after the video and page have loaded
             function checkCreditsOnLoad() {
                 // Check if video and all required elements are loaded
@@ -925,6 +953,69 @@
                         imageButtonsContainer.style.display = 'flex';
                         imageButtonsContainer.style.justifyContent = 'center';
                         imageButtonsContainer.style.gap = '10px';
+                        imageButtonsContainer.style.marginBottom = '15px';  // Add space for scale slider
+
+                        // Add scale slider container
+                        const scaleContainer = document.createElement('div');
+                        scaleContainer.style.display = 'flex';
+                        scaleContainer.style.flexDirection = 'column';
+                        scaleContainer.style.alignItems = 'center';
+                        scaleContainer.style.gap = '5px';
+                        scaleContainer.style.marginTop = '10px';
+
+                        // Add scale label
+                        const scaleLabel = document.createElement('div');
+                        scaleLabel.textContent = 'Scale: 1.0x';
+                        scaleLabel.style.fontSize = '14px';
+                        scaleLabel.style.color = '#666';
+
+                        // Create scale slider
+                        const scaleSlider = document.createElement('input');
+                        scaleSlider.type = 'range';
+                        scaleSlider.min = '0';
+                        scaleSlider.max = '4';
+                        scaleSlider.value = '2';  // Default to 1.0x (middle position)
+                        scaleSlider.step = '1';
+                        scaleSlider.style.width = '80%';
+                        scaleSlider.style.accentColor = '#DA3A98';
+
+                        // Store scale multiplier in a Map
+                        if (!window.faceScaleMultipliers) {
+                            window.faceScaleMultipliers = new Map();
+                        }
+                        window.faceScaleMultipliers.set(faceId, 1.0);  // Default multiplier
+
+                        // Scale values array
+                        const scaleValues = [0.8, 0.9, 1.0, 1.1, 1.2];
+
+                        // Add scale markers container
+                        const scaleMarkers = document.createElement('div');
+                        scaleMarkers.style.display = 'flex';
+                        scaleMarkers.style.justifyContent = 'space-between';
+                        scaleMarkers.style.width = '80%';
+                        scaleMarkers.style.marginTop = '2px';
+
+                        // Add markers for each scale value
+                        scaleValues.forEach(value => {
+                            const marker = document.createElement('span');
+                            marker.textContent = value.toFixed(1);
+                            marker.style.fontSize = '10px';
+                            marker.style.color = '#666';
+                            scaleMarkers.appendChild(marker);
+                        });
+
+                        // Handle scale slider changes
+                        scaleSlider.addEventListener('input', () => {
+                            const scaleValue = scaleValues[parseInt(scaleSlider.value)];
+                            scaleLabel.textContent = `Scale: ${scaleValue.toFixed(1)}x`;
+                            window.faceScaleMultipliers.set(faceId, scaleValue);
+                            drawFrame();  // Redraw with new scale
+                        });
+
+                        // Add scale elements to container
+                        scaleContainer.appendChild(scaleLabel);
+                        scaleContainer.appendChild(scaleSlider);
+                        scaleContainer.appendChild(scaleMarkers);
 
                         // Collect unique image names for this face
                         const uniqueImageNames = new Set(['Default']);
@@ -1069,7 +1160,10 @@
                                 const clickX = rect.left;
                                 const clickY = rect.bottom + window.scrollY;
 
-                                // Create the modal
+                                // Add this at the beginning of your face selection modal code, before creating the modal
+                                let selectedFacePath = null; // Declare the variable in the proper scope
+
+                                // Create modal element
                                 const modal = document.createElement('div');
                                 modal.className = 'face-selection-modal';
                                 modal.style.left = `${clickX}px`;
@@ -1155,24 +1249,30 @@
                                                     faceButton.crossOrigin = 'anonymous';
                                                     faceButton.src = urlData.publicUrl;
                                                     
-                                                    // When clicked, use this saved face
-                                                    faceButton.addEventListener('click', () => {
-                                                        // Update the image button with this face
-                                                        imgButton.src = urlData.publicUrl;
-                                                        imgButton.crossOrigin = 'anonymous';
-                                                        
-                                                        // Show delete button
-                                                        deleteBtn.style.display = 'flex';
-                                                        
-                                                        // Update image buttons map
-                                                        imageButtons.set(`${faceId}_${imageName}`, imgButton);
-                                                        
-                                                        // Redraw the frame
-                                                        drawFrame();
-                                                        requestAnimationFrame(drawFrame);
-                                                        
-                                                        // Close the modal
-                                                        document.body.removeChild(modal);
+                                                    // Add click handler for face selection
+                                                    faceButton.addEventListener('click', async () => {
+                                                        try {
+                                                            const url = urlData.publicUrl;
+                                                            
+                                                            // Update the image button with the selected face
+                                                            imgButton.src = url;
+                                                            imgButton.crossOrigin = 'anonymous';
+                                                            
+                                                            // Show the delete button
+                                                            deleteBtn.style.display = 'flex';
+                                                            
+                                                            // Update the imageButtons map with the new face
+                                                            imageButtons.set(`${faceId}_${imageName}`, imgButton);
+                                                            
+                                                            // Trigger a redraw of the canvas
+                                                            drawFrame();
+                                                            
+                                                            // Close the modal
+                                                            document.body.removeChild(modal);
+                                                        } catch (error) {
+                                                            console.error('Error selecting face:', error);
+                                                            alert('Error selecting face. Please try again.');
+                                                        }
                                                     });
                                                     
                                                     savedFacesContainer.appendChild(faceButton);
@@ -1180,8 +1280,8 @@
                                             }
                                         }
                                     } catch (error) {
-                                        console.error('Error fetching saved faces:', error);
-                                        savedFacesContainer.innerHTML = 'Error fetching saved faces. Please try again.';
+                                        console.error('Error fetching faces:', error);
+                                        savedFacesContainer.innerHTML = 'Error loading faces.';
                                     }
                                 }
 
@@ -1216,6 +1316,7 @@
                         });
 
                         faceContainer.appendChild(imageButtonsContainer);
+                        faceContainer.appendChild(scaleContainer);  // Add scale container
                         uploadContainer.appendChild(faceContainer);
                     });
                     
@@ -1253,8 +1354,12 @@
                                     ctx.translate(data.position.x, data.position.y);
                                     const finalScaleX = data.scale * data.scaleX * (data.xFlip ? -1 : 1);
                                     const finalScaleY = data.scale * data.scaleY;
+                                    
+                                    // Apply scale multiplier if it exists
+                                    const scaleMultiplier = window.faceScaleMultipliers.get(faceId) || 1.0;
+                                    
                                     ctx.rotate(data.rotation * Math.PI / 180);
-                                    ctx.scale(finalScaleX, finalScaleY);
+                                    ctx.scale(finalScaleX * scaleMultiplier, finalScaleY * scaleMultiplier);
 
                                     // Create a temporary canvas for the face and mask
                                     const tempCanvas = document.createElement('canvas');
@@ -1443,6 +1548,59 @@
                 timeControlsContainer.style.alignItems = 'center';
                 timeControlsContainer.style.gap = '10px';
                 
+                // Add volume control container
+                const volumeControlContainer = document.createElement('div');
+                volumeControlContainer.style.display = 'flex';
+                volumeControlContainer.style.alignItems = 'center';
+                volumeControlContainer.style.gap = '5px';
+                
+                // Add volume icon
+                const volumeIcon = document.createElement('span');
+                volumeIcon.innerHTML = '🔊';
+                volumeIcon.style.color = 'white';
+                volumeIcon.style.cursor = 'pointer';
+                volumeIcon.style.fontSize = '16px';
+                
+                // Add volume slider
+                const volumeSlider = document.createElement('input');
+                volumeSlider.type = 'range';
+                volumeSlider.min = '0';
+                volumeSlider.max = '100';
+                volumeSlider.value = '100';
+                volumeSlider.style.width = '80px';
+                volumeSlider.style.accentColor = '#DA3A98';
+                
+                // Add volume control functionality
+                volumeSlider.addEventListener('input', () => {
+                    const volume = volumeSlider.value / 100;
+                    video.volume = volume;
+                    // Update icon based on volume level
+                    if (volume === 0) {
+                        volumeIcon.innerHTML = '🔇';
+                    } else if (volume < 0.5) {
+                        volumeIcon.innerHTML = '🔉';
+                    } else {
+                        volumeIcon.innerHTML = '🔊';
+                    }
+                });
+                
+                // Add mute toggle on icon click
+                volumeIcon.addEventListener('click', () => {
+                    if (video.volume > 0) {
+                        // Store current volume before muting
+                        volumeIcon.dataset.lastVolume = volumeSlider.value;
+                        video.volume = 0;
+                        volumeSlider.value = 0;
+                        volumeIcon.innerHTML = '🔇';
+                    } else {
+                        // Restore last volume
+                        const lastVolume = volumeIcon.dataset.lastVolume || 100;
+                        volumeSlider.value = lastVolume;
+                        video.volume = lastVolume / 100;
+                        volumeIcon.innerHTML = lastVolume < 50 ? '🔉' : '🔊';
+                    }
+                });
+                
                 // Add time display
                 const timeDisplay = document.createElement('span');
                 timeDisplay.style.color = 'white';
@@ -1454,8 +1612,12 @@
                 scrubber.step = 1;
                 scrubber.style.flex = '1';
                 
+                // Assemble controls
+                volumeControlContainer.appendChild(volumeIcon);
+                volumeControlContainer.appendChild(volumeSlider);
                 timeControlsContainer.appendChild(scrubber);
                 timeControlsContainer.appendChild(timeDisplay);
+                timeControlsContainer.appendChild(volumeControlContainer);
                 controlsContainer.appendChild(timeControlsContainer);
                 
                 // Insert controls into the existing scrubber container
@@ -1558,10 +1720,12 @@
                 
                 // Track if the user is currently dragging the scrubber
                 scrubber.dragging = false;
+                let lastFrame = 0; // Add variable to track last frame position
                 
                 // Handle scrubbing start
                 scrubber.addEventListener('mousedown', () => {
                     scrubber.dragging = true;
+                    lastFrame = currentFrame; // Initialize lastFrame when starting to scrub
                 });
                 
                 // Handle scrubbing end
@@ -1575,7 +1739,22 @@
                     // Update the filled part of the slider
                     const percent = (currentFrame / (scrubber.max - scrubber.min)) * 100;
                     scrubber.style.setProperty('--value-percent', `${percent}%`);
-                    handleSeek(currentFrame / 30);
+                    
+                    // Check if we're moving forward
+                    const isMovingForward = currentFrame > lastFrame;
+                    lastFrame = currentFrame; // Update lastFrame for next comparison
+                    
+                    // Set the current time and only play audio if moving forward
+                    handleSeek(currentFrame / 30).then(() => {
+                        if (isMovingForward) {
+                            // Ensure video is unmuted and play a brief moment of audio
+                            video.muted = false;
+                            video.play();
+                            setTimeout(() => {
+                                video.pause();
+                            }, 100); // Play 100ms of audio
+                        }
+                    });
                 });
                 
                 // Add event listener for watermark toggle button
@@ -2292,6 +2471,23 @@
                     ffmpegButtonGIF.disabled = false;
                     spinner.style.display = 'none';
 
+                    // After successful render, before the final status update
+                    try {
+                        const renderData = {
+                            url: URL.createObjectURL(blob), // The rendered video blob URL
+                            type: 'video/mp4',
+                            timestamp: Date.now()
+                        };
+                        saveRenderToCache(renderData, {
+                            resolution: resolution.name,
+                            isGif: false,
+                            gifSize: null,
+                            duration: isRangeActive ? (endValue - startValue) / 30 : video.duration
+                        });
+                    } catch (error) {
+                        console.error('Error saving render:', error);
+                    }
+
                 } catch (error) {
                     // Clean up audio on error
                     if (audioSource) {
@@ -2516,6 +2712,24 @@
                     ffmpegButtonGIFMed.disabled = false;
                     ffmpegButtonGIFLarge.disabled = false;
                     spinner.style.display = 'none';
+
+                    // After successful render, before the final status update
+                    try {
+                        const renderData = {
+                            url: URL.createObjectURL(blob), // The rendered GIF blob URL
+                            type: 'image/gif',
+                            timestamp: Date.now()
+                        };
+                        saveRenderToCache(renderData, {
+                            resolution: resolution.name,
+                            isGif: true,
+                            gifSize: size,
+                            duration: isRangeActive ? (endValue - startValue) / 30 : video.duration
+                        });
+                    } catch (error) {
+                        console.error('Error saving render:', error);
+                    }
+
                 } catch (error) {
                     console.error('GIF processing error:', error);
                     statusDiv.textContent = 'GIF processing failed: ' + error.message;
@@ -2851,6 +3065,89 @@
             localStorage.removeItem(cacheKey);
             console.log('Faces cache invalidated');
         };
+
+        // Add this function after the other utility functions
+        function saveRenderToCache(renderData, settings) {
+            try {
+                // Get existing renders from localStorage
+                let recentRenders = JSON.parse(localStorage.getItem('recentRenders') || '[]');
+                
+                // Create a new blob from the existing one to ensure it persists
+                const persistentBlob = new Blob([renderData.blob], { type: renderData.type });
+                const persistentUrl = URL.createObjectURL(persistentBlob);
+                
+                // Add new render to the beginning of the array
+                recentRenders.unshift({
+                    timestamp: Date.now(),
+                    title: document.title,
+                    renderData: {
+                        url: persistentUrl,
+                        type: renderData.type
+                    },
+                    settings: settings
+                });
+                
+                // Keep only the last 3 renders
+                recentRenders = recentRenders.slice(0, 3);
+                
+                // Save back to localStorage
+                localStorage.setItem('recentRenders', JSON.stringify(recentRenders));
+                
+                // Trigger an event to update the profile section
+                window.dispatchEvent(new CustomEvent('rendersUpdated'));
+                console.log('Render saved to cache:', recentRenders[0]);
+            } catch (error) {
+                console.error('Error saving render to cache:', error);
+            }
+        }
+
+        // Modify the renderWithFFmpeg function's caching part
+        async function renderWithFFmpeg(resolution = RESOLUTION_TIERS.FULL_HD, spinner = ffmpegSpinner) {
+            // ... existing rendering code ...
+            
+            // After creating the blob but before creating the download link
+            try {
+                const renderData = {
+                    blob: data.buffer,  // Pass the raw buffer
+                    type: 'video/mp4',
+                };
+                const settings = {
+                    resolution: resolution.name,
+                    isGif: false,
+                    gifSize: null,
+                    duration: isRangeActive ? (endValue - startValue) / 30 : video.duration
+                };
+                saveRenderToCache(renderData, settings);
+            } catch (error) {
+                console.error('Error saving render:', error);
+            }
+            
+            // ... rest of the existing code ...
+        }
+
+        // Similarly modify the renderAsGIF function's caching part
+        async function renderAsGIF(resolution, spinner, size) {
+            // ... existing rendering code ...
+            
+            // After creating the blob but before creating the download link
+            try {
+                const renderData = {
+                    blob: data.buffer,  // Pass the raw buffer
+                    type: 'image/gif',
+                };
+                const settings = {
+                    resolution: resolution.name,
+                    isGif: true,
+                    gifSize: size,
+                    duration: isRangeActive ? (endValue - startValue) / 30 : video.duration
+                };
+                saveRenderToCache(renderData, settings);
+            } catch (error) {
+                console.error('Error saving render:', error);
+            }
+            
+            // ... rest of the existing code ...
+        }
     </script>
     <script src="/components.js"></script>
 </body>

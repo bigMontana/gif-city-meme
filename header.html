@@ -314,9 +314,31 @@
     };
 
     window.getSupabaseStorageUrl = async (path) => {
-    return await supabase.storage
-        .from('user_faces')
-        .getPublicUrl(path);
+        // If the path is already a full URL, transform it to use the CDN
+        if (path.startsWith('http')) {
+            return {
+                data: {
+                    publicUrl: path.replace(
+                        'https://srcyiezlwutfjvfklkgi.supabase.co',
+                        'http://127.0.0.1:8787' // Use your worker URL in production
+                    )
+                }
+            };
+        }
+        
+        // If it's just a path, get the URL from Supabase and transform it
+        const { data } = await supabase.storage
+            .from('user_faces')
+            .getPublicUrl(path);
+            
+        if (data?.publicUrl) {
+            data.publicUrl = data.publicUrl.replace(
+                'https://srcyiezlwutfjvfklkgi.supabase.co',
+                'http://127.0.0.1:8787' // Use your worker URL in production
+            );
+        }
+        
+        return { data };
     };
 
     window.checkRenderCredits = async (creditCost) => {

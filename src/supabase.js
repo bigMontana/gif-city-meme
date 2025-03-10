@@ -143,6 +143,7 @@ export const uploadUserFace = async (userID, file) => {
 // Function to get user saved faces
 export const getUserSavedFaces = async (userID) => {
     try {
+        // First get the face records from Supabase
         const { data, error } = await supabase
             .from('user_faces')
             .select('*')
@@ -152,8 +153,17 @@ export const getUserSavedFaces = async (userID) => {
             console.error('Error fetching user saved faces:', error);
             return [];
         }
+
+        // Transform the URLs to use the Cloudflare Worker
+        const transformedData = data.map(face => ({
+            ...face,
+            face_path: face.face_path.replace(
+                'https://srcyiezlwutfjvfklkgi.supabase.co',
+                'http://127.0.0.1:8787' // Use your worker URL in production
+            )
+        }));
         
-        return data;
+        return transformedData;
     } catch (error) {
         console.error('Error fetching user saved faces:', error);
         throw error;

@@ -224,7 +224,7 @@ body {
     display: flex;
     justify-content: center;
     margin-top: 25px;
-    font-family: 'VT323', serif;
+    
 }
 
 #unlockFacesButton {
@@ -233,10 +233,11 @@ body {
     padding: 12px 24px;
     border: none;
     border-radius: 5px;
-    font-size: 16px;
+    font-size: 20px;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    font-family: 'VT323', serif;
 }
 
 #unlockFacesButton:hover {
@@ -268,7 +269,7 @@ body {
     background-color: rgba(54, 178, 183, 0.2);
     color: white;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 18px;
     margin: 5px;
     display: flex;
     justify-content: center;
@@ -276,6 +277,7 @@ body {
     /* overflow: hidden; */
     text-align: center;
     padding: 5px;
+    font-family: 'VT323', serif;
 }
 
 .face-buttons-container button:hover {

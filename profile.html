@@ -13,6 +13,77 @@
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&family=Work+Sans:ital,wght@1,600&display=swap">
     <link rel="stylesheet" href="profile.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+    <style>
+    .recent-renders {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 8px;
+        padding: 20px;
+        margin: 20px 0;
+    }
+
+    .recent-renders h2 {
+        color: #DA3A98;
+        margin-bottom: 15px;
+        font-family: 'Work Sans', sans-serif;
+    }
+
+    .recent-renders-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 15px;
+    }
+
+    .recent-render-item {
+        display: flex;
+        flex-direction: column;
+        padding: 15px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+        text-decoration: none;
+        color: white;
+        transition: transform 0.2s, background 0.2s;
+    }
+
+    .recent-render-item:hover {
+        background: rgba(0, 0, 0, 0.3);
+        transform: translateY(-2px);
+    }
+
+    .render-info {
+        margin-top: 10px;
+    }
+
+    .render-info strong {
+        display: block;
+        margin-bottom: 5px;
+        color: #36B2B7;
+    }
+
+    .render-info small {
+        color: #888;
+    }
+
+    .no-renders {
+        text-align: center;
+        color: #888;
+        padding: 20px;
+    }
+
+    .download-btn {
+        background: #36B2B7;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 10px;
+        transition: background 0.2s;
+    }
+
+    .download-btn:hover {
+        background: #2a8a8f;
+    }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -37,6 +108,14 @@
                 <div class="unlockFacesButton">
                     <button id="unlockFacesButton">Unlock 10 Face Slots for 250 Credits</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Add this after the profile-stats div and before the profile-content div -->
+        <div class="recent-renders">
+            <h2>Recent Renders</h2>
+            <div id="recentRendersList" class="recent-renders-list">
+                <!-- Renders will be populated here -->
             </div>
         </div>
 
@@ -312,12 +391,35 @@
                                 // console.log('Created at:', userData.created_at);
                                 // console.log('All available fields in users table:', Object.keys(userData));
                                 if(userData.credits >= 250 && userData.is_paid) {
-                                    // Subtract 250 credits from the user's balance
-                                    await window.userService.updateUserCredits(currentUser.id, userData.credits - 250);
-                                    await window.userService.updateUserFaceSlots(currentUser.id, userData.face_count + 10);
-                                    console.log('======250 credits subtracted from user balance & 10 face slots unlocked======');
-                                    // Create alert to confirm the changes for the user
-                                    alert('10 face slots unlocked!!');
+                                    // Add confirmation dialog
+                                    if (confirm('Are you sure you want to unlock 10 face slots for 250 credits?')) {
+                                        // Subtract 250 credits from the user's balance
+                                        await window.userService.updateUserCredits(currentUser.id, userData.credits - 250);
+                                        await window.userService.updateUserFaceSlots(currentUser.id, userData.face_count + 10);
+                                        console.log('======250 credits subtracted from user balance & 10 face slots unlocked======');
+                                        
+                                        // Get the updated face count
+                                        const newFaceCount = await getFaceCount();
+                                        
+                                        // Clear and reinitialize the face buttons container
+                                        const faceButtonsContainer = document.getElementById('faceButtonsContainer');
+                                        if (faceButtonsContainer) {
+                                            faceButtonsContainer.innerHTML = '';
+                                            await initSavedFaces(newFaceCount);
+                                        }
+
+                                        // Update header credits display
+                                        const headerCredits = document.getElementById('headerCredits');
+                                        if (headerCredits) {
+                                            headerCredits.textContent = userData.credits - 250;
+                                        }
+
+                                        // Update profile credits display
+                                        const profileCredits = document.getElementById('profileCredits');
+                                        if (profileCredits) {
+                                            profileCredits.textContent = `CREDITS: ${userData.credits - 250}`;
+                                        }
+                                    }
                                 } else {
                                     console.log('======Either not enough credits or not paid member======');
                                     alert('Cannot unlock face slots with free credits. Once credits are purchased you can unlock more face slots.');
@@ -421,5 +523,76 @@
         });
     </script>
     <script src="/components.js"></script>
+    <script>
+    // Function to update the recent renders display
+    function updateRecentRendersDisplay() {
+        const recentRendersList = document.getElementById('recentRendersList');
+        const renders = JSON.parse(localStorage.getItem('recentRenders') || '[]');
+        
+        if (renders.length === 0) {
+            recentRendersList.innerHTML = '<p class="no-renders">No recent renders</p>';
+            return;
+        }
+        
+        recentRendersList.innerHTML = '';
+        
+        renders.forEach((render, index) => {
+            const renderTime = new Date(render.timestamp).toLocaleString();
+            const renderType = render.renderData.type === 'image/gif' ? 'GIF' : 'Video';
+            
+            const renderItem = document.createElement('div');
+            renderItem.className = 'recent-render-item';
+            
+            renderItem.innerHTML = `
+                <div class="render-info">
+                    <strong>${render.title || 'Untitled Render'}</strong>
+                    <small>${renderTime}</small><br>
+                    <small>${renderType} - ${render.settings.resolution}</small>
+                    <small>${Math.round(render.settings.duration)}s duration</small>
+                </div>
+            `;
+            
+            // Add a download button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'download-btn';
+            downloadBtn.innerHTML = 'Download';
+            downloadBtn.onclick = () => {
+                // Convert base64 back to blob
+                const byteString = atob(render.renderData.data.split(',')[1]);
+                const arrayBuffer = new ArrayBuffer(byteString.length);
+                const uint8Array = new Uint8Array(arrayBuffer);
+                
+                for (let i = 0; i < byteString.length; i++) {
+                    uint8Array[i] = byteString.charCodeAt(i);
+                }
+                
+                const blob = new Blob([arrayBuffer], { type: render.renderData.type });
+                const url = URL.createObjectURL(blob);
+                
+                // Create and click download link
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `render-${new Date(render.timestamp).toISOString().slice(0,10)}.${renderType === 'GIF' ? 'gif' : 'mp4'}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Clean up the blob URL
+                setTimeout(() => {
+                    URL.revokeObjectURL(url);
+                }, 100);
+            };
+            
+            renderItem.appendChild(downloadBtn);
+            recentRendersList.appendChild(renderItem);
+        });
+    }
+
+    // Update the display when renders are updated
+    window.addEventListener('rendersUpdated', updateRecentRendersDisplay);
+
+    // Initial display update
+    document.addEventListener('DOMContentLoaded', updateRecentRendersDisplay);
+    </script>
 </body>
 </html> 

@@ -8,7 +8,7 @@
  * Learn more at https://developers.cloudflare.com/workers/
  */
 
-async function handleSupabaseStorageRequest(request, env) {
+async function handleSupabaseStorageRequest(request, env, ctx) {
 	// Extract the path from the URL
 	const url = new URL(request.url);
 	const path = url.pathname;
@@ -16,6 +16,17 @@ async function handleSupabaseStorageRequest(request, env) {
 	// Check if this is a storage request
 	if (path.startsWith('/storage/v1/object/')) {
 	  console.log('Handling storage request:', path);
+	  
+	  // Check cache first
+	  const cache = caches.default;
+	  let response = await cache.match(request);
+	  
+	  if (response) {
+		console.log('Cache hit for:', path);
+		return response;
+	  }
+	  
+	  console.log('Cache miss for:', path);
 	  
 	  // Create a new request to forward to Supabase
 	  const supabaseUrl = env.SUPABASE_URL || 'https://srcyiezlwutfjvfklkgi.supabase.co';
@@ -49,6 +60,14 @@ async function handleSupabaseStorageRequest(request, env) {
 		// Forward the request to Supabase
 		const response = await fetch(newRequest);
 		
+		// Only cache GET requests with successful responses
+		if (request.method === 'GET' && response.ok) {
+		  // Clone the response before caching
+		  const responseToCache = response.clone();
+		  ctx.waitUntil(cache.put(request, responseToCache));
+		  console.log('Cached response for:', path);
+		}
+		
 		// Log response status for debugging
 		console.log('Supabase storage response status:', response.status);
 		
@@ -57,6 +76,7 @@ async function handleSupabaseStorageRequest(request, env) {
 		
 		// Add CORS headers if needed
 		newResponse.headers.set('Access-Control-Allow-Origin', '*');
+		newResponse.headers.set('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
 		
 		return newResponse;
 	  } catch (error) {
@@ -81,7 +101,7 @@ async function handleSupabaseStorageRequest(request, env) {
 export default {
 	async fetch(request, env, ctx) {
 		// First check if it's a storage request and handle it specially
-		const storageResponse = await handleSupabaseStorageRequest(request, env);
+		const storageResponse = await handleSupabaseStorageRequest(request, env, ctx);
 		if (storageResponse) {
 			return storageResponse;
 		}
