@@ -164,7 +164,7 @@ body {
 }
 
 /* Face slot upload button styling */
-#faceButtonsContainer button {
+/* .face-button {
     width: 80px;
     height: 80px;
     position: relative;
@@ -182,13 +182,13 @@ body {
     overflow: hidden;
     text-align: center;
     padding: 5px;
-}
+} */
 
-#faceButtonsContainer button:hover {
+/* #faceButtonsContainer button:hover {
     transform: scale(1.05);
     border-color: #DA3A98 !important;
     background-color: rgba(218, 58, 152, 0.2);
-}
+} */
 
 .face-input {
     display: none;
@@ -248,4 +248,70 @@ body {
 #unlockFacesButton:active {
     transform: translateY(1px);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.face-buttons-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 20px;
+    justify-content: center;
+}
+
+.face-button {
+    width: 100px;
+    height: 100px;
+    position: relative;
+    transition: transform 0.2s, border-color 0.2s;
+    border: 2px solid #36B2B7;
+    border-radius: 5px;
+    background-color: rgba(54, 178, 183, 0.2);
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    margin: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* overflow: hidden; */
+    text-align: center;
+    padding: 5px;
+}
+
+.face-buttons-container button:hover {
+    border-color: #666;
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.face-button img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 4px;
+}
+
+/* Delete button styles */
+.delete-face-btn {
+    position: absolute;
+    top: -15px;
+    left: -15px;
+    width: 36px;
+    height: 36px;
+    background-color: rgba(255, 0, 0, 0.8);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    z-index: 2;
+    transition: all 0.2s ease;
+}
+
+.delete-face-btn:hover {
+    background-color: rgba(255, 0, 0, 1);
+    transform: scale(1.1);
 }

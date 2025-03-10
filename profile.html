@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cross-Origin-Opener-Policy" content="same-origin">
+    <meta http-equiv="Cross-Origin-Embedder-Policy" content="require-corp">
     <meta http-equiv="Cross-Origin-Resource-Policy" content="cross-origin">
     <title>User Profile - GIF City</title>
     <!-- Add Supabase environment variables as meta tags -->
@@ -48,6 +49,9 @@
    
     <script type="module">
         import { uploadUserFace } from './src/supabase.js';
+        import { createUserFace } from './src/supabase.js';
+        import { getUserSavedFaces } from './src/supabase.js';
+        import { removeUserFace } from './src/supabase.js';
 
         // Script for profile.html to work with the header component
         let faceCount = 0;
@@ -88,10 +92,14 @@
             };
 
             // Initialize profile page
-            const initSavedFaces = (count) => {
+            const initSavedFaces = async (count) => {
                 // Create upload buttons for each face slot
                 const faceButtonsContainer = document.getElementById('faceButtonsContainer');
                 if (faceButtonsContainer) {
+                    const currentUser = window.getCurrentUser();
+                    // Get existing saved faces
+                    const savedFaces = await getUserSavedFaces(currentUser.id);
+                    
                     for (let i = 0; i < count; i++) {
                         const slotIndex = i;
                         
@@ -105,7 +113,64 @@
                         
                         // Create the visible button
                         const faceButton = document.createElement('button');
-                        faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                        faceButton.className = 'face-button';
+                        
+                        // Check if there's an existing face for this slot
+                        const existingFace = savedFaces.find(face => face.face_number === slotIndex + 1);
+                        
+                        if (existingFace) {
+                            // Create an image element for the existing face
+                            const img = document.createElement('img');
+                            img.crossOrigin = "anonymous";  // Add crossorigin attribute
+                            img.src = existingFace.face_path;
+                            // img.style.width = '100%';
+                            // img.style.height = '100%';
+                            // img.style.objectFit = 'cover';
+                            // Add error handling for image loading
+                            img.onerror = () => {
+                                console.error('Failed to load image:', existingFace.face_path);
+                                faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                            };
+                            faceButton.appendChild(img);
+
+                            // Add delete button
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.className = 'delete-face-btn';
+                            deleteBtn.innerHTML = '×'; // × symbol for delete
+                            deleteBtn.title = 'Delete face';
+                            
+                            // Handle delete button click
+                            deleteBtn.addEventListener('click', async (e) => {
+                                e.stopPropagation(); // Prevent triggering the file input click
+                                
+                                try {
+                                    const currentUser = window.getCurrentUser();
+                                    if (!currentUser) {
+                                        console.error('No user logged in');
+                                        return;
+                                    }
+
+                                    // Show confirmation dialog
+                                    if (confirm('Are you sure you want to delete this face?')) {
+                                        deleteBtn.textContent = '...'; // Show loading state
+                                        removeUserFace(currentUser.id, slotIndex + 1).then(() => {
+                                            // Reset the button to upload state
+                                            faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                                        });
+                                        
+                                        // Reset the button to upload state
+                                        faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                                    }
+                                } catch (error) {
+                                    console.error('Error deleting face:', error);
+                                    alert('Failed to delete face. Please try again.');
+                                }
+                            });
+
+                            faceButton.appendChild(deleteBtn);
+                        } else {
+                            faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                        }
                         
                         // Handle button click - trigger file input
                         faceButton.addEventListener('click', () => {
@@ -119,14 +184,71 @@
                             if (file) {
                                 const currentUser = window.getCurrentUser();
                                 if (currentUser) {
-                                    uploadUserFace(currentUser.id, file)
-                                        .then((url) => {
-                                            console.log(`Face uploaded successfully for slot ${slotIndex + 1}:`, url);
-                                            // Optionally, update the UI with the uploaded image URL
-                                        })
-                                        .catch((error) => {
-                                            console.error(`Error uploading face for slot ${slotIndex + 1}:`, error);
+                                    try {
+                                        // Check if there's an existing face in this slot
+                                        const existingFace = savedFaces.find(face => face.face_number === slotIndex + 1);
+                                        if (existingFace) {
+                                            // Delete the existing face first
+                                            await removeUserFace(currentUser.id, slotIndex + 1);
+                                        }
+
+                                        // Now proceed with the new upload
+                                        const url = await uploadUserFace(currentUser.id, file);
+                                        console.log(`Face uploaded successfully for slot ${slotIndex + 1}:`, url);
+                                        
+                                        // Update the button UI with the new image
+                                        faceButton.textContent = ''; // Clear existing content
+                                        const img = document.createElement('img');
+                                        img.crossOrigin = "anonymous";
+                                        img.src = url;
+                                        
+                                        // Add error handling for image loading
+                                        img.onerror = () => {
+                                            console.error('Failed to load image:', url);
+                                            faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                                        };
+                                        
+                                        faceButton.appendChild(img);
+
+                                        // Add delete button for the new upload
+                                        const deleteBtn = document.createElement('button');
+                                        deleteBtn.className = 'delete-face-btn';
+                                        deleteBtn.innerHTML = '×';
+                                        deleteBtn.title = 'Delete face';
+                                        
+                                        // Handle delete button click
+                                        deleteBtn.addEventListener('click', async (e) => {
+                                            e.stopPropagation(); // Prevent triggering the file input click
+                                            
+                                            try {
+                                                if (!currentUser) {
+                                                    console.error('No user logged in');
+                                                    return;
+                                                }
+
+                                                // Show confirmation dialog
+                                                if (confirm('Are you sure you want to delete this face?')) {
+                                                    deleteBtn.textContent = '...'; // Show loading state
+                                                    await removeUserFace(currentUser.id, slotIndex + 1);
+                                                    // Reset the button to upload state
+                                                    faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                                                }
+                                            } catch (error) {
+                                                console.error('Error deleting face:', error);
+                                                alert('Failed to delete face. Please try again.');
+                                            }
                                         });
+
+                                        faceButton.appendChild(deleteBtn);
+
+                                        // create a new row in the user_faces table
+                                        await createUserFace(currentUser.id, url, slotIndex + 1);
+                                        console.log('User face created successfully');
+                                        
+                                    } catch (error) {
+                                        console.error(`Error handling face upload for slot ${slotIndex + 1}:`, error);
+                                        faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);
+                                    }
                                 } else {
                                     console.error('No user logged in to upload face');
                                 }

@@ -1,0 +1,387 @@
+[33mcommit 3f4679c26183ed44ccd846fdc3836fb6e07a91fa[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: GERG <gregorysforster@gmail.com>
+Date:   Sun Mar 9 18:59:52 2025 +0700
+
+    FINALLY FIGURED OUT THE STORAGE OF FACES in the storage bucket
+
+[1mdiff --git a/cloudflare-worker/supabase-cache/src/index.js b/cloudflare-worker/supabase-cache/src/index.js[m
+[1mindex 7ad9613..3fa0e18 100644[m
+[1m--- a/cloudflare-worker/supabase-cache/src/index.js[m
+[1m+++ b/cloudflare-worker/supabase-cache/src/index.js[m
+[36m@@ -8,8 +8,84 @@[m
+  * Learn more at https://developers.cloudflare.com/workers/[m
+  */[m
+ [m
+[32m+[m[32masync function handleSupabaseStorageRequest(request, env) {[m
+[32m+[m	[32m// Extract the path from the URL[m
+[32m+[m	[32mconst url = new URL(request.url);[m
+[32m+[m	[32mconst path = url.pathname;[m
+[32m+[m[41m  [m
+[32m+[m	[32m// Check if this is a storage request[m
+[32m+[m	[32mif (path.startsWith('/storage/v1/object/')) {[m
+[32m+[m	[32m  console.log('Handling storage request:', path);[m
+[32m+[m[41m	  [m
+[32m+[m	[32m  // Create a new request to forward to Supabase[m
+[32m+[m	[32m  const supabaseUrl = env.SUPABASE_URL || 'https://srcyiezlwutfjvfklkgi.supabase.co';[m
+[32m+[m	[32m  const targetUrl = `${supabaseUrl}${path}`;[m
+[32m+[m[41m	  [m
+[32m+[m	[32m  // Clone the request and modify as needed[m
+[32m+[m	[32m  const newRequest = new Request(targetUrl, {[m
+[32m+[m		[32mmethod: request.method,[m
+[32m+[m		[32mheaders: new Headers(request.headers),[m
+[32m+[m		[32mbody: request.body,[m
+[32m+[m		[32m// Make sure to include this for file uploads[m
+[32m+[m		[32mduplex: 'half'[m
+[32m+[m	[32m  });[m
+[32m+[m[41m	  [m
+[32m+[m	[32m  // Forward any Authorization header from the original request[m
+[32m+[m	[32m  const authHeader = request.headers.get('Authorization');[m
+[32m+[m	[32m  if (authHeader) {[m
+[32m+[m		[32mnewRequest.headers.set('Authorization', authHeader);[m
+[32m+[m	[32m  } else {[m
+[32m+[m		[32m// If no auth header, add the anon key as a fallback[m
+[32m+[m		[32mnewRequest.headers.set('apikey', env.SUPABASE_ANON_KEY);[m
+[32m+[m	[32m  }[m
+[32m+[m[41m	  [m
+[32m+[m	[32m  // Log request details for debugging[m
+[32m+[m	[32m  console.log('Forwarding storage request to:', targetUrl);[m
+[32m+[m	[32m  console.log('Request method:', request.method);[m
+[32m+[m	[32m  console.log('Content-Type:', request.headers.get('Content-Type'));[m
+[32m+[m	[32m  console.log('Authorization present:', !!authHeader);[m
+[32m+[m[41m	  [m
+[32m+[m	[32m  try {[m
+[32m+[m		[32m// Forward the request to Supabase[m
+[32m+[m		[32mconst response = await fetch(newRequest);[m
+[32m+[m[41m		[m
+[32m+[m		[32m// Log response status for debugging[m
+[32m+[m		[32mconsole.log('Supabase storage response status:', response.status);[m
+[32m+[m[41m		[m
+[32m+[m		[32m// Clone and return the response[m
+[32m+[m		[32mconst newResponse = new Response(response.body, response);[m
+[32m+[m[41m		[m
+[32m+[m		[32m// Add CORS headers if needed[m
+[32m+[m		[32mnewResponse.headers.set('Access-Control-Allow-Origin', '*');[m
+[32m+[m[41m		[m
+[32m+[m		[32mreturn newResponse;[m
+[32m+[m	[32m  } catch (error) {[m
+[32m+[m		[32mconsole.error('Error forwarding storage request:', error);[m
+[32m+[m		[32mreturn new Response(JSON.stringify({[m
+[32m+[m		[32m  error: 'Error forwarding storage request',[m
+[32m+[m		[32m  message: error.message[m
+[32m+[m		[32m}), {[m
+[32m+[m		[32m  status: 500,[m
+[32m+[m		[32m  headers: {[m
+[32m+[m			[32m'Content-Type': 'application/json',[m
+[32m+[m			[32m'Access-Control-Allow-Origin': '*'[m
+[32m+[m		[32m  }[m
+[32m+[m		[32m});[m
+[32m+[m	[32m  }[m
+[32m+[m	[32m}[m
+[32m+[m[41m	[m
+[32m+[m	[32m// If not a storage request, continue with other handlers[m
+[32m+[m	[32mreturn null;[m
+[32m+[m[32m  }[m
+[32m+[m
+ export default {[m
+ 	async fetch(request, env, ctx) {[m
+[32m+[m		[32m// First check if it's a storage request and handle it specially[m
+[32m+[m		[32mconst storageResponse = await handleSupabaseStorageRequest(request, env);[m
+[32m+[m		[32mif (storageResponse) {[m
+[32m+[m			[32mreturn storageResponse;[m
+[32m+[m		[32m}[m
+[32m+[m[41m		[m
+ 		// Add this at the start of the fetch handler[m
+ 		if (request.url.includes('/clear-cache')) {[m
+ 			const cache = caches.default;[m
+[36m@@ -23,7 +99,7 @@[m [mexport default {[m
+ 		const corsHeaders = {[m
+ 			'Access-Control-Allow-Origin': 'http://localhost:5173', // Only set one origin[m
+ 			'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',[m
+[31m-			'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, content-profile, prefer, accept, x-supabase-api-version',[m
+[32m+[m			[32m'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, range, accept-profile, content-profile, prefer, accept, x-supabase-api-version, x-upsert',[m
+ 			'Access-Control-Expose-Headers': 'content-range',[m
+ 			'Access-Control-Max-Age': '86400',[m
+ 		};[m
+[1mdiff --git a/header.html b/header.html[m
+[1mindex e436f9f..a516d2a 100644[m
+[1m--- a/header.html[m
+[1m+++ b/header.html[m
+[36m@@ -296,6 +296,7 @@[m
+     window.getCurrentUser = () => currentUser;[m
+ [m
+     window.userService = userService;[m
+[32m+[m[41m    [m
+     window.isUserLoggedIn = () => currentUser !== null;[m
+     window.getCurrentUser = () => currentUser;[m
+     window.fetchUserSavedFaces = async () => {[m
+[36m@@ -412,4 +413,42 @@[m
+             return { error: error.message };[m
+         }[m
+     };[m
+[32m+[m
+[32m+[m[32m    window.updateUserFaceSlots = async (userId, newFaceSlots) => {[m
+[32m+[m[32m        if (!userId) {[m
+[32m+[m[32m            const currentUser = window.getCurrentUser();[m
+[32m+[m[32m            if (!currentUser) return { error: 'No user logged in' };[m
+[32m+[m[32m            userId = currentUser.id;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        try {[m
+[32m+[m[32m            const { data, error } = await supabase[m
+[32m+[m[32m                .from('users')[m
+[32m+[m[32m                .update({ face_count: newFaceSlots })[m
+[32m+[m[32m                .eq('id', userId)[m
+[32m+[m[32m                .select();[m
+[32m+[m
+[32m+[m[32m            if (error) throw error;[m
+[32m+[m[32m            return data;[m
+[32m+[m[32m        } catch (error) {[m
+[32m+[m[32m            console.error('Error updating user face slots:', error);[m
+[32m+[m[32m            return { error: error.message };[m
+[32m+[m[32m        }[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    window.getFaceCount = async (userId) => {[m
+[32m+[m[32m        if (!userId) {[m
+[32m+[m[32m            const currentUser = window.getCurrentUser();[m
+[32m+[m[32m            if (!currentUser) return { error: 'No user logged in' };[m
+[32m+[m[32m            userId = currentUser.id;[m
+[32m+[m[32m        }[m
+[32m+[m[32m    };[m
+[32m+[m
+[32m+[m[32m    window.checkBucketConfiguration = userService.checkBucketConfiguration;[m
+[32m+[m[32m    window.testDirectUpload = userService.testDirectUpload;[m
+[32m+[m[32m    window.auth = auth;[m
+[32m+[m[32m    window.getAuthSession = userService.getAuthSession;[m
+[32m+[m[32m    window.authenticatedUploadFace = userService.authenticatedUploadFace;[m
+[32m+[m[32m    window.uploadFaceToSupabase = userService.uploadFaceToSupabase;[m
+[32m+[m[41m    [m
+ </script>[m
+\ No newline at end of file[m
+[1mdiff --git a/profile.css b/profile.css[m
+[1mindex f9dfbb3..77605cb 100644[m
+[1m--- a/profile.css[m
+[1m+++ b/profile.css[m
+[36m@@ -160,38 +160,34 @@[m [mbody {[m
+     flex-wrap: wrap;[m
+     gap: 15px;[m
+     justify-content: center;[m
+[32m+[m[32m    margin: 20px 0;[m
+ }[m
+ [m
+[31m-.face-button {[m
+[32m+[m[32m/* Face slot upload button styling */[m
+[32m+[m[32m#faceButtonsContainer button {[m
+     width: 80px;[m
+     height: 80px;[m
+     position: relative;[m
+     transition: transform 0.2s, border-color 0.2s;[m
+     border: 2px solid #36B2B7;[m
+     border-radius: 5px;[m
+[31m-    background-color: #2a2a2a;[m
+[32m+[m[32m    background-color: rgba(54, 178, 183, 0.2);[m
+[32m+[m[32m    color: white;[m
+[32m+[m[32m    cursor: pointer;[m
+[32m+[m[32m    font-size: 14px;[m
+[32m+[m[32m    margin: 5px;[m
+     display: flex;[m
+     justify-content: center;[m
+     align-items: center;[m
+[31m-    cursor: pointer;[m
+[31m-    overflow: visible;[m
+[32m+[m[32m    overflow: hidden;[m
+[32m+[m[32m    text-align: center;[m
+[32m+[m[32m    padding: 5px;[m
+ }[m
+ [m
+[31m-.face-button:hover {[m
+[32m+[m[32m#faceButtonsContainer button:hover {[m
+     transform: scale(1.05);[m
+[31m-    border-color: #DA3A98;[m
+[31m-}[m
+[31m-[m
+[31m-.face-button-number {[m
+[31m-    position: absolute;[m
+[31m-    bottom: 5px;[m
+[31m-    right: 5px;[m
+[31m-    font-size: 18px;[m
+[31m-    color: white;[m
+[31m-    background-color: rgba(0, 0, 0, 0.5);[m
+[31m-    padding: 2px 6px;[m
+[31m-    border-radius: 3px;[m
+[31m-    z-index: 2;[m
+[32m+[m[32m    border-color: #DA3A98 !important;[m
+[32m+[m[32m    background-color: rgba(218, 58, 152, 0.2);[m
+ }[m
+ [m
+ .face-input {[m
+[1mdiff --git a/profile.html b/profile.html[m
+[1mindex e68af4b..980be51 100644[m
+[1m--- a/profile.html[m
+[1m+++ b/profile.html[m
+[36m@@ -47,7 +47,10 @@[m
+     <script type="module" src="/src/supabase.js"></script>[m
+    [m
+     <script type="module">[m
+[32m+[m[32m        import { uploadUserFace } from './src/supabase.js';[m
+[32m+[m
+         // Script for profile.html to work with the header component[m
+[32m+[m[32m        let faceCount = 0;[m
+         document.addEventListener('DOMContentLoaded', function() {[m
+             // Profile elements[m
+             const profileUsername = document.getElementById('profileUsername');[m
+[36m@@ -66,13 +69,16 @@[m
+             };[m
+             [m
+             // Initialize profile page[m
+[31m-            const initProfilePage = () => {[m
+[32m+[m[32m            const initProfilePage = async () => {[m
+                 // Get current user from header component[m
+                 const currentUser = window.getCurrentUser();[m
+                 [m
+                 if (currentUser) {[m
+                     updateProfileDisplay(currentUser);[m
+[31m-                    [m
+[32m+[m[32m                    // Wait for getFaceCount to complete and store the result[m
+[32m+[m[32m                    const faceCount = await getFaceCount();[m
+[32m+[m[32m                    // Pass the face count to initSavedFaces[m
+[32m+[m[32m                    initSavedFaces(faceCount || 0);[m
+                     // Setup auth state change listener[m
+                     setupAuthChangeListener();[m
+                 } else {[m
+[36m@@ -80,6 +86,58 @@[m
+                     window.location.href = 'index.html';[m
+                 }[m
+             };[m
+[32m+[m
+[32m+[m[32m            // Initialize profile page[m
+[32m+[m[32m            const initSavedFaces = (count) => {[m
+[32m+[m[32m                // Create upload buttons for each face slot[m
+[32m+[m[32m                const faceButtonsContainer = document.getElementById('faceButtonsContainer');[m
+[32m+[m[32m                if (faceButtonsContainer) {[m
+[32m+[m[32m                    for (let i = 0; i < count; i++) {[m
+[32m+[m[32m                        const slotIndex = i;[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        // Create a hidden file input for this slot[m
+[32m+[m[32m                        const fileInput = document.createElement('input');[m
+[32m+[m[32m                        fileInput.type = 'file';[m
+[32m+[m[32m                        fileInput.accept = 'image/*';[m
+[32m+[m[32m                        fileInput.style.display = 'none';[m
+[32m+[m[32m                        fileInput.id = `face-upload-input-${slotIndex}`;[m
+[32m+[m[32m                        document.body.appendChild(fileInput);[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        // Create the visible button[m
+[32m+[m[32m                        const faceButton = document.createElement('button');[m
+[32m+[m[32m                        faceButton.textContent = 'Upload Face Slot ' + (slotIndex + 1);[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        // Handle button click - trigger file input[m
+[32m+[m[32m                        faceButton.addEventListener('click', () => {[m
+[32m+[m[32m                            console.log('Face upload button clicked for slot', slotIndex + 1);[m
+[32m+[m[32m                            fileInput.click(); // Trigger file selection dialog[m
+[32m+[m[32m                        });[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        // Handle file selection - UPDATED to use authenticatedUploadFace[m
+[32m+[m[32m                        fileInput.addEventListener('change', async (event) => {[m
+[32m+[m[32m                        const file = event.target.files[0];[m
+[32m+[m[32m                            if (file) {[m
+[32m+[m[32m                                const currentUser = window.getCurrentUser();[m
+[32m+[m[32m                                if (currentUser) {[m
+[32m+[m[32m                                    uploadUserFace(currentUser.id, file)[m
+[32m+[m[32m                                        .then((url) => {[m
+[32m+[m[32m                                            console.log(`Face uploaded successfully for slot ${slotIndex + 1}:`, url);[m
+[32m+[m[32m                                            // Optionally, update the UI with the uploaded image URL[m
+[32m+[m[32m                                        })[m
+[32m+[m[32m                                        .catch((error) => {[m
+[32m+[m[32m                                            console.error(`Error uploading face for slot ${slotIndex + 1}:`, error);[m
+[32m+[m[32m                                        });[m
+[32m+[m[32m                                } else {[m
+[32m+[m[32m                                    console.error('No user logged in to upload face');[m
+[32m+[m[32m                                }[m
+[32m+[m[32m                            }[m
+[32m+[m[32m                        });[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        faceButtonsContainer.appendChild(faceButton);[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m            };[m
+[32m+[m
+             [m
+             // Setup listener for auth state changes from header component[m
+             const setupAuthChangeListener = () => {[m
+[36m@@ -127,10 +185,21 @@[m
+                             [m
+                             // Log specific fields if available[m
+                             if (userData) {[m
+[31m-                                console.log('User ID:', userData.id);[m
+[31m-                                console.log('Credits:', userData.credits);[m
+[31m-                                console.log('Created at:', userData.created_at);[m
+[31m-                                console.log('All available fields in users table:', Object.keys(userData));[m
+[32m+[m[32m                                // console.log('User ID:', userData.id);[m
+[32m+[m[32m                                // console.log('Credits:', userData.credits);[m
+[32m+[m[32m                                // console.log('Created at:', userData.created_at);[m
+[32m+[m[32m                                // console.log('All available fields in users table:', Object.keys(userData));[m
+[32m+[m[32m                                if(userData.credits >= 250 && userData.is_paid) {[m
+[32m+[m[32m                                    // Subtract 250 credits from the user's balance[m
+[32m+[m[32m                                    await window.userService.updateUserCredits(currentUser.id, userData.credits - 250);[m
+[32m+[m[32m                                    await window.userService.updateUserFaceSlots(currentUser.id, userData.face_count + 10);[m
+[32m+[m[32m                                    console.log('======250 credits subtracted from user balance & 10 face slots unlocked======');[m
+[32m+[m[32m                                    // Create alert to confirm the changes for the user[m
+[32m+[m[32m                                    alert('10 face slots unlocked!!');[m
+[32m+[m[32m                                } else {[m
+[32m+[m[32m                                    console.log('======Either not enough credits or not paid member======');[m
+[32m+[m[32m                                    alert('Cannot unlock face slots with free credits. Once credits are purchased you can unlock more face slots.');[m
+[32m+[m[32m                                }[m
+                             }[m
+                             [m
+                             // You can also add a new helper function to header.html if needed[m
+[36m@@ -206,6 +275,27 @@[m
+             [m
+             // Start checking if header is loaded[m
+             checkHeaderLoaded();[m
+[32m+[m
+[32m+[m[32m            // Get face count from user table[m
+[32m+[m[32m            const getFaceCount = async () => {[m
+[32m+[m[32m                const currentUser = window.getCurrentUser();[m
+[32m+[m[32m                if (currentUser) {[m
+[32m+[m[32m                    try {[m
+[32m+[m[32m                        const faceCount = await window.userService.getFaceCount(currentUser.id);[m
+[32m+[m[32m                        console.log('Face count:', faceCount);[m
+[32m+[m[41m                        [m
+[32m+[m[32m                        // Update the face quota count in the UI[m
+[32m+[m[32m                        const faceQuotaCount = document.getElementById('faceQuotaCount');[m
+[32m+[m[32m                        if (faceQuotaCount) {[m
+[32m+[m[32m                            faceQuotaCount.textContent = faceCount || 0;[m
+[32m+[m[32m                        }[m
+[32m+[m[32m                        return faceCount;[m
+[32m+[m[32m                    } catch (error) {[m
+[32m+[m[32m                        console.error('Error getting face count:', error);[m
+[32m+[m[32m                    }[m
+[32m+[m[32m                }[m
+[32m+[m[32m            };[m
+[32m+[m[41m            [m
+         });[m
+     </script>[m
+     <script src="/components.js"></script>[m
+[1mdiff --git a/src/supabase.js b/src/supabase.js[m
+[1mindex 5d0ea9a..4949ce9 100644[m
+[1m--- a/src/supabase.js[m
+[1m+++ b/src/supabase.js[m
+[36m@@ -3,7 +3,7 @@[m [mconst supabaseUrl = import.meta.env.DEV[m
+   ? 'http://127.0.0.1:8787'  // Local development (Cloudflare Worker)[m
+   : import.meta.env.VITE_SUPABASE_URL;[m
+ [m
+[31m-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5zb29zeXRmbGNzZ3VreHZyZ2NkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA3MDc0ODEsImV4cCI6MjA1NjI4MzQ4MX0.uWa4pNN1FltUh_HLBgi02Ei34fPhTTAg05R4DlxMwgs';[m
+[32m+[m[32mconst supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNyY3lpZXpsd3V0Zmp2Zmtsa2dpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExNTQ1MjQsImV4cCI6MjA1NjczMDUyNH0.hlL8QRmt-efTiwcSZ_P3NfnWq8INKU7o0-3gTQt3prA';[m
+ [m
+ // Configure client with persistence and headers[m
+ export const supabase = window.supabase.createClient(supabaseUrl, supabaseKey, {[m
+[36m@@ -105,6 +105,37 @@[m [mwindow.login = async () => {[m
+     }[m
+ };[m
+ [m
+[32m+[m[32m// Function to upload user face[m
+[32m+[m[32mexport const uploadUserFace = async (userID, file) => {[m
+[32m+[m[32m    try {[m
+[32m+[m[32m        // Upload the GERGFACE.png image from the /src/assets/images folder to the 'user_faces' bucket[m
+[32m+[m[32m        const { data: uploadData, error: uploadError } = await supabase[m
+[32m+[m[32m            .stor
